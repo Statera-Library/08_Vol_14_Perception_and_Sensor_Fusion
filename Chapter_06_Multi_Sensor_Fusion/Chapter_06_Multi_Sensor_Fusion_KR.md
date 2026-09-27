@@ -1,0 +1,377 @@
+**Volume 14. Perception and Sensor Fusion**
+
+# Chapter 06. Multi Sensor Fusion
+
+## 06.01. Sensor Fusion Architectures Early Late Deep Fusion
+
+![](images/image1.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+센서 융합(Sensor Fusion)은 여러 센싱 양식(Sensing Modality)의 관측 정보를 결합하여, 개별 센서만으로 얻을 수 있는 것보다 더 완전하고 신뢰성 높은 환경 표현(Environment Representation)을 로봇이 구축할 수 있도록 한다. 카메라(Camera)는 풍부한 외형 및 의미 정보(Semantic Information)를 제공하고, 라이다(LiDAR)는 정확한 3차원 기하 정보(Three-Dimensional Geometry)를 제공하며, 레이더(Radar)는 거리와 상대 속도를 강건하게 측정한다. 관성 측정 장치(IMU)는 고주기 운동 정보를 제공한다. 융합 아키텍처(Fusion Architecture)는 이러한 상호 보완적인 신호가 인지 파이프라인(Perception Pipeline)의 어느 단계에서 상호작용할지를 결정한다.
+
+가장 기본적인 아키텍처 선택은 융합 단계(Fusion Stage)를 결정하는 것이다. 초기 융합(Early Fusion)은 센서 측정값이나 최소한으로 처리된 표현을 인지 시스템의 입력에 가까운 단계에서 결합한다. 후기 융합(Late Fusion)은 각 센싱 양식이 독립적인 추정 결과를 생성한 후 그 판단 결과를 결합한다. 심층 융합(Deep Fusion)은 학습된 신경 표현(Neural Representation) 내부에서 상호작용을 수행하며, 여러 중간 계층에서 융합이 이루어질 수도 있다. 이러한 방식은 정보 보존, 계산 비용, 동기화 요구사항, 강건성(Robustness), 모델 복잡도 측면에서 상당한 차이를 가진다.
+
+초기 융합(Early Fusion)은 상위 수준의 해석이 이루어지기 전에 가능한 한 많은 원시 센서 정보(Raw Sensor Information)를 보존하는 것을 목표로 한다. 카메라, 라이다(LiDAR), 레이더(Radar) 또는 기타 센서의 측정값을 호환 가능한 공간적 또는 수치적 표현으로 변환한 후 연결(Concatenation), 투영(Projection) 또는 공동 인코딩(Joint Encoding)을 수행한다. 예를 들어 라이다 포인트를 이미지 평면(Image Plane)에 투영하거나, 객체 검출(Object Detection)을 수행하기 전에 카메라 특징(Camera Feature)을 포인트 또는 복셀(Voxel)과 연관시킬 수 있다.
+
+초기 융합의 주요 장점은 정보가 객체 수준의 판단으로 압축되기 전에 서로 다른 센싱 양식 간의 관계를 활용할 수 있다는 것이다. 이미지 질감(Image Texture)은 유사한 기하 구조를 가진 객체를 구분하는 데 도움을 줄 수 있으며, 라이다 깊이 정보(LiDAR Depth)는 단안 비전(Monocular Vision)에 내재된 모호성을 해결할 수 있다. 그러나 측정값들이 거의 동일한 물리적 장면을 나타내고 공통 좌표계(Common Coordinate Framework)에서 기하학적으로 정렬되어야 하므로, 이 아키텍처는 정밀한 보정(Calibration)과 동기화(Synchronization)를 요구한다.
+
+초기 융합은 서로 다른 센서 특성(Heterogeneous Sensor Characteristics)에 민감할 수도 있다. 카메라 이미지는 밀집된 2차원 배열(Dense Two-Dimensional Array)이고, 라이다 측정값은 희소한 3차원 포인트 집합(Sparse Three-Dimensional Point Set)이며, 레이더 반환 신호(Radar Return)는 거리와 도플러(Doppler) 정보를 포함한다. 관성 측정 장치(IMU)는 고주파 시계열(High-Frequency Temporal Sequence)을 생성한다. 따라서 이러한 표현을 직접 결합하는 것은 일반적으로 단순하지 않으며, 실제 시스템에서는 의미 있는 융합을 위해 투영, 복셀화(Voxelization), 보간(Interpolation), 좌표 변환(Coordinate Transformation), 정규화(Normalization) 등의 표현 변환 과정이 필요하다.
+
+후기 융합(Late Fusion)은 각 센서 파이프라인이 대부분 독립적으로 동작하도록 하는 반대 접근법을 사용한다. 카메라 검출기(Camera Detector)는 객체 클래스와 경계 상자(Bounding Box)를 추정하고, 라이다 검출기(LiDAR Detector)는 3차원 객체를 생성하며, 레이더 처리 과정은 표적과 속도를 추정할 수 있다. 이후 이러한 출력은 기하학적 대응(Geometric Correspondence), 확률적 추론(Probabilistic Reasoning), 신뢰도 가중(Confidence Weighting), 추적(Tracking) 또는 규칙 기반 논리(Rule-Based Logic)를 통해 연관되고 결합되어 통합된 환경 해석을 생성한다.
+
+이러한 분리 구조는 중요한 엔지니어링 장점을 제공한다. 개별 인지 모듈(Perception Module)을 독립적으로 개발, 검증, 교체하거나 성능 저하 상태로 운용할 수 있으며, 하나의 센싱 양식에서 발생한 고장이 다른 센서의 내부 표현을 반드시 손상시키지는 않는다. 따라서 후기 융합은 모듈형 소프트웨어 아키텍처(Modular Software Architecture)와 점진적 성능 저하(Graceful Degradation)를 지원한다. 특히 진단 가시성(Diagnostic Visibility), 센서 이중화(Sensor Redundancy), 유지보수성(Maintainability), 명시적인 고장 처리(Failure Handling)가 최대 인지 정확도만큼 중요한 양산 로봇(Production Robot)에 적합하다.
+
+후기 융합의 한계는 융합이 이루어지기 전에 상당한 양의 정보가 이미 제거될 수 있다는 것이다. 카메라 신경망(Camera Network)이 이미지를 소수의 검출 결과로 변환하면, 라이다 해석을 지원할 수 있었던 미세한 시각적 증거가 더 이상 남아 있지 않을 수 있다. 마찬가지로 포인트 클라우드 처리(Point-Cloud Processing) 과정에서 제거된 기하 구조는 이후의 교차 양식 추론(Cross-Modal Reasoning)에 활용할 수 없다. 따라서 후기 융합은 표현 정보의 풍부함 일부를 희생하는 대신 모듈성과 아키텍처 단순성을 확보한다.
+
+심층 융합(Deep Fusion)은 신경망 내부에서 센서 표현 간의 학습된 상호작용(Learned Interaction)을 도입한다. 원시 측정값이나 최종 판단만을 결합하는 대신, 센싱 양식별 인코더(Modality-Specific Encoder)가 먼저 입력을 잠재 특징(Latent Feature)으로 변환한다. 이후 융합 모듈(Fusion Module)이 이러한 특징을 교환, 연결, 어텐션(Attention) 또는 집계(Aggregation)한 뒤 하위 단계의 예측을 수행한다. 신경망이 각 센싱 양식에서 어떤 정보가 유용한지를 학습할 수 있기 때문에, 심층 융합은 수작업으로 정의하기 어려운 복잡한 교차 양식 관계를 모델링할 수 있다.
+
+특징 정렬(Feature Alignment)은 심층 융합에서 핵심적인 문제이다. 센서 표현은 공통 이미지 평면, 복셀 그리드(Voxel Grid), 포인트 기반 공간(Point-Based Space) 또는 조감도 표현(Bird\'s-Eye-View Representation)으로 변환될 수 있다. 조감도 융합(BEV Fusion)은 카메라, 라이다, 레이더 정보를 로봇을 기준으로 하는 공통 지면 좌표계에 표현할 수 있기 때문에 이동 로봇(Mobile Robot)에 특히 유용하다. 정렬 이후 학습 신경망은 기하 구조, 의미 정보, 운동, 자유 공간(Free Space), 주변 객체를 공동으로 추론할 수 있다.
+
+어텐션 메커니즘(Attention Mechanism)은 심층 다중 센서 융합(Deep Multimodal Fusion)을 위한 또 다른 강력한 전략이다. 모든 센서의 정보를 동일하게 취급하는 대신, 어텐션은 특징 간의 관계를 학습하고 현재 공간 영역이나 작업에 관련된 정보를 선택적으로 강조할 수 있다. 교차 어텐션(Cross-Attention)을 사용하면 카메라 특징이 기하학적 특징을 질의(Query)하거나 그 반대의 상호작용을 수행할 수 있다. 이러한 메커니즘은 단순 연결에 대한 의존성을 줄이고, 여러 스케일에서 이질적인 표현 간의 유연한 상호작용을 가능하게 한다.
+
+심층 융합이 전통적인 엔지니어링 요구사항을 제거하는 것은 아니다. 특징들이 기하학적으로 대응되어야 하는 경우 정확한 내부 및 외부 보정(Intrinsic and Extrinsic Calibration)이 여전히 필요하며, 로봇이나 주변 객체가 이동하는 환경에서는 타임스탬프 정렬(Timestamp Alignment)이 필수적이다. 높은 속도에서는 작은 시간 오차도 상당한 공간적 불일치로 이어질 수 있다. 따라서 동기화, 좌표 변환, 운동 보상(Motion Compensation), 보정 상태 감시(Calibration Monitoring), 불확실성 관리(Uncertainty Management)는 고도로 학습된 융합 시스템에서도 기본 구성 요소로 유지된다.
+
+시간 융합(Temporal Fusion)은 단일 시점에서 획득한 측정값을 넘어 센서 이력(Sensor History)을 활용하도록 아키텍처를 확장한다. 센서의 시간적 이력은 운동, 지속성(Persistence), 가시성(Visibility), 일시적 가림(Occlusion)에 관한 정보를 제공한다. 순환 모델(Recurrent Model), 시간 합성곱(Temporal Convolution), 트랜스포머(Transformer), 추적 필터(Tracking Filter), 누적 조감도 특징(Accumulated BEV Feature) 등을 이용하여 시간에 따른 관측을 통합할 수 있다. 이는 객체가 일시적으로 가려지거나 희소 센서가 안정적인 속도와 기하 정보를 확보하기 위해 여러 번의 측정을 필요로 하는 상황에서 특히 유용하다.
+
+불확실성(Uncertainty)은 정보를 융합하는 방식에 영향을 주어야 한다. 센서 품질은 환경 조건에 따라 달라지며, 카메라는 어둠이나 눈부심에서 성능이 저하될 수 있고, 라이다는 강수 또는 반사 표면의 영향을 받을 수 있으며, 레이더는 다중 경로(Multipath) 또는 모호한 반환 신호를 생성할 수 있다. 강건한 융합 아키텍처는 센서 신뢰도가 항상 일정하다고 가정해서는 안 된다. 신뢰도 추정(Confidence Estimation), 공분산 모델링(Covariance Modeling), 학습 기반 가중치(Learned Weighting), 일관성 검사(Consistency Check), 센서 상태 정보(Sensor-Health Information)를 이용하여 각 센싱 양식의 기여도를 동적으로 조정할 수 있다.
+
+따라서 초기 융합, 후기 융합, 심층 융합의 구분을 서로 배타적인 세 가지 설계로 해석해서는 안 된다. 실제 로봇 인지 시스템은 흔히 하이브리드 아키텍처(Hybrid Architecture)를 사용한다. 원시 또는 저수준 측정값은 위치 추정(Localization)을 위해 융합될 수 있고, 중간 신경 특징은 객체 및 점유 인지(Occupancy Perception)를 위해 결합될 수 있으며, 최종 검출 결과는 독립적인 안전 채널(Safety Channel)과 후기 융합될 수 있다. 로봇의 기능마다 지연시간, 정확도, 설명 가능성(Explainability), 신뢰성 요구사항이 다르기 때문에 여러 융합 단계가 하나의 시스템 안에 공존할 수 있다.
+
+아키텍처 선택은 보편적으로 우수한 하나의 융합 방법이 아니라 실제 운용 목적에 따라 결정되어야 한다. 초기 융합은 정보의 풍부함을 제공하지만 정밀한 정렬을 요구하고, 후기 융합은 모듈성과 고장 격리(Fault Isolation)에 유리하며, 심층 융합은 강력한 학습 기반 교차 양식 추론을 제공하지만 학습 및 계산 복잡도가 증가한다. 양산 시스템은 이러한 특성을 사용 가능한 센서, 엣지 컴퓨팅(Edge Computing) 자원, 실시간 처리 기한(Real-Time Deadline), 환경 조건 및 안전 요구사항과 균형 있게 고려해야 한다.
+
+피지컬 AI(Physical AI) 시스템에서 센서 융합은 점차 단순히 객체 검출 성능을 향상시키는 메커니즘을 넘어서는 역할을 수행한다. 융합된 표현(Fused Representation)은 점유 예측(Occupancy Prediction), 의미 지도(Semantic Mapping), 내비게이션(Navigation), 조작(Manipulation), 월드 모델(World Model), 행동 정책(Action Policy)이 사용하는 인지 상태(Perceptual State)가 될 수 있다. 따라서 잘 설계된 융합 아키텍처는 이질적인 센서 스트림을 공간적·시간적으로 일관된 표현으로 변환하여 즉각적인 로봇 제어뿐 아니라 물리 세계에 대한 상위 수준의 추론까지 지원한다.
+
+## 06.02. Extended Kalman Filter for Multi Sensor Fusion [w/Code]
+
+![](images/image2.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+확장 칼만 필터(Extended Kalman Filter, EKF)는 로봇 시스템이 비선형(Nonlinear)이지만 국부적으로 선형 모델(Linear Model)로 근사할 수 있을 때 여러 센서의 측정값을 결합하기 위한 실용적인 확률적 프레임워크(Probabilistic Framework)를 제공한다. 다중 센서 융합(Multi-Sensor Fusion)에서 EKF는 로봇 상태(State)의 추정값과 그 불확실성(Uncertainty)을 함께 유지하면서 카메라(Camera), 라이다(LiDAR), 레이더(Radar), 위성항법시스템(GNSS), 관성 측정 장치(IMU) 등의 측정값을 지속적으로 통합한다. 해당 내용은 인지 아키텍처(Perception Architecture)의 다중 센서 융합 영역에 위치한다.
+
+EKF의 핵심 개념은 로봇 상태를 주로 상태 벡터(State Vector)와 공분산 행렬(Covariance Matrix)로 특성화되는 확률 분포(Probability Distribution)로 표현하는 것이다. 일반적인 상태에는 위치(Position), 속도(Velocity), 자세(Orientation), 그리고 바이어스(Bias)와 같은 센서 관련 매개변수가 포함될 수 있다. 공분산(Covariance)은 추정된 상태와 관련된 불확성을 나타낸다. EKF는 센서 측정값을 정확한 값으로 취급하지 않고 현재 추정값이 얼마나 불확실한지, 그리고 새로운 측정값이 기존 추정값을 어느 정도 수정해야 하는지를 지속적으로 평가한다.
+
+EKF는 예측(Prediction)과 측정 업데이트(Measurement Update)라는 두 가지 기본 단계로 동작한다. 예측 단계에서는 시스템이 운동 모델(Motion Model)과 제어 입력(Control Input) 또는 관성 측정값(Inertial Measurement)을 사용하여 이전 상태를 시간에 따라 앞으로 전파한다. 동시에 시스템 동역학(System Dynamics)을 통해 공분산도 함께 전파된다. 이를 통해 다음 외부 센서 측정값이 들어오기 전에 예측 상태(Predicted State)와 그 불확실성을 계산한다.
+
+측정 업데이트(Measurement Update)는 센서에서 얻은 관측값(Observation)을 예측 상태에 반영한다. 측정 모델(Measurement Model)은 현재 상태가 센서의 측정 공간(Measurement Space)에서 어떻게 나타나야 하는지를 정의한다. 실제 측정값과 예측 측정값의 차이가 혁신값 또는 잔차(Innovation or Residual)를 형성한다. EKF는 이 잔차를 예측 불확실성 및 측정 잡음(Measurement Noise)과 함께 사용하여 해당 관측값이 상태 추정값에 어느 정도 영향을 주어야 하는지를 결정한다.
+
+로봇 시스템은 일반적으로 비선형이기 때문에 EKF는 국부 선형화(Local Linearization)를 통해 비선형 운동 모델과 측정 모델을 근사한다. 야코비안 행렬(Jacobian Matrix)은 상태의 작은 변화가 예측된 시스템 동작이나 센서 관측에 어떤 영향을 미치는지를 나타낸다. 이러한 야코비안은 공분산을 전파하고 칼만 이득(Kalman Gain)을 계산하는 데 사용된다. 특히 로봇이 큰 회전을 수행하거나 강한 비선형 운동을 하는 경우 이러한 국부 근사의 품질이 필터 안정성과 추정 정확도에 큰 영향을 미친다.
+
+칼만 이득(Kalman Gain)은 예측값과 새롭게 입력되는 측정값의 상대적인 영향력을 결정한다. 예측 상태의 불확실성이 크지만 센서 측정값의 신뢰성이 높다면 측정값에 더 큰 영향력이 부여된다. 반대로 측정값에 잡음이 많고 예측값의 확실성이 상대적으로 높다면 필터는 예측 상태에 더 크게 의존한다. 이러한 적응형 가중(Adaptive Weighting)을 통해 정확도와 업데이트 주기가 서로 다른 이종 센서(Heterogeneous Sensor)가 각각 추정된 불확실성에 따라 상태 추정에 기여할 수 있다.
+
+다중 센서 융합은 센서마다 서로 다른 주기로 동작하면서 상호 보완적인 정보를 제공할 때 특히 유용하다. 관성 측정 장치(IMU)는 단기 운동 전파를 위한 고주기 가속도 및 각속도(Angular Velocity) 측정값을 제공할 수 있으며, 위성항법시스템(GNSS)은 상대적으로 느린 주기로 절대 위치(Absolute Position) 정보를 제공할 수 있다. 라이다 또는 카메라 측정값은 기하학적 제약조건(Geometric Constraint)을 제공하고, 레이더는 거리 또는 속도 정보를 제공할 수 있다. EKF는 이러한 비동기 관측값(Asynchronous Observation)을 통합할 수 있는 공통의 확률적 상태 추정 프레임워크를 제공한다.
+
+좌표계(Coordinate Frame)와 보정(Calibration)은 신뢰성 높은 EKF 융합의 기본 요소이다. 각 센서는 자체 좌표계에서 정보를 측정할 수 있으므로 관측값을 일관성 있게 사용하려면 상태 추정 좌표계(State-Estimation Frame)로 변환해야 한다. 외부 보정(Extrinsic Calibration)은 센서 사이의 상대적인 위치와 자세를 정의하며, 내부 보정(Intrinsic Calibration)은 센서 고유의 측정 특성을 정의한다. 잘못된 좌표 변환은 단순히 필터 매개변수를 조정하는 것만으로 제거할 수 없는 체계적인 추정 오차(Systematic Estimation Error)를 발생시킬 수 있다.
+
+센서 잡음 모델(Sensor Noise Model) 역시 매우 중요하다. EKF는 프로세스 공분산(Process Covariance)과 측정 공분산(Measurement Covariance)에 직접적으로 의존하기 때문이다. 프로세스 잡음(Process Noise)은 운동 모델, 액추에이터(Actuator) 동작 또는 모델링되지 않은 동역학의 불확실성을 나타내며, 측정 잡음은 개별 센서 관측값의 불확실성을 나타낸다. 이러한 공분산 값이 부적절하게 설정되면 필터가 측정값이나 예측값 중 한쪽에 지나치게 의존할 수 있다. 따라서 실제 시스템에서는 공분산 튜닝(Covariance Tuning), 실제 데이터 기반 검증, 추정 일관성(Estimation Consistency) 모니터링이 필요하다.
+
+이상치 처리(Outlier Handling)는 실제 로봇 시스템에서 중요한 고려사항이다. 센서 측정값은 시각 인지의 오검출(False Detection), 라이다 아티팩트(LiDAR Artifact), 레이더 다중 경로(Radar Multipath), GNSS 성능 저하 또는 일시적인 환경 간섭으로 인해 때때로 일관성을 잃을 수 있다. 혁신값 기반 일관성 검사(Innovation-Based Consistency Check)를 이용하면 입력되는 측정값을 수용하기 전에 예측 관측값과 비교할 수 있다. 적절한 통계적 임계값(Statistical Threshold)을 초과하는 측정값은 거부하거나 가중치를 낮추거나 별도의 고장 처리 메커니즘(Fault-Handling Mechanism)을 통해 처리할 수 있다.
+
+EKF는 계산 효율적이고 해석 가능한 추정 메커니즘(Interpretable Estimation Mechanism)을 제공하기 때문에 양산 로보틱스(Production Robotics)에 특히 적합하다. 재귀 구조(Recursive Structure)를 사용하므로 전체 측정 이력을 저장할 필요 없이 현재 상태, 공분산, 새롭게 입력되는 측정값만 필요하다. 따라서 계산 자원과 지연시간이 제한된 실시간 임베디드 시스템(Real-Time Embedded System)과 엣지 시스템(Edge System)에 적합하다. 또한 위치 추정(Localization), 오도메트리(Odometry), 내비게이션(Navigation), 인지 파이프라인과 자연스럽게 통합할 수 있다.
+
+그러나 다중 센서 융합 시스템을 설계할 때는 EKF의 한계도 고려해야 한다. 시스템의 비선형성이 강하거나 불확실성이 크게 증가하면 국부 선형화의 정확도가 떨어질 수 있다. 부정확한 초기화(Initialization), 잘못된 야코비안, 일관되지 않은 공분산 모델 또는 심각한 센서 고장은 필터 발산(Filter Divergence)을 발생시킬 수 있다. 강한 비선형 상태 추정 문제에서는 무향 칼만 필터(Unscented Kalman Filter), 파티클 필터(Particle Filter), 최적화 기반 팩터 그래프(Factor Graph) 등의 방법이 서로 다른 장단점을 제공할 수 있다.
+
+따라서 완전한 로봇 인지 아키텍처에서 EKF는 모든 융합 문제를 해결하는 범용적인 방법이라기보다 상태 추정 구성 요소(State-Estimation Component)로 이해해야 한다. EKF의 효과는 정확한 시스템 모델링(System Modeling), 보정, 동기화(Synchronization), 불확실성 표현(Uncertainty Representation), 센서 상태 관리(Sensor-Health Management)에 의해 결정된다. 이러한 기반 요소가 적절하게 설계되면 EKF 기반 융합은 서로 다른 센서의 관측값을 시간적으로 연속적이고 확률적으로 일관된 로봇 운동 및 환경 상태 추정값으로 변환할 수 있다.
+
+## 06.03. Unscented Kalman Filter Nonlinear Fusion [w/Code]
+
+![](images/image3.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+무향 칼만 필터(Unscented Kalman Filter, UKF)는 기존의 선형 필터링(Linear Filtering)만으로 충분하지 않은 비선형 시스템(Nonlinear System)을 위해 설계된 재귀적 베이지안 상태 추정(Recursive Bayesian State Estimation) 방법이다. 다중 센서 융합(Multi-Sensor Fusion)에서는 시스템 상태(State)와 그 불확실성(Uncertainty)의 추정값을 유지하면서 관성 측정 장치(IMU), 위성항법시스템(GNSS), 카메라(Camera), 라이다(LiDAR), 레이더(Radar) 등의 관측값을 결합한다. 확장 칼만 필터(Extended Kalman Filter, EKF)와 달리 UKF는 비선형 모델을 명시적으로 야코비안(Jacobian) 기반 선형화할 필요가 없다.
+
+UKF의 핵심 개념은 비선형 함수(Nonlinear Function)를 통과할 때 확률 분포(Probability Distribution)가 어떻게 변화하는지를 근사하는 무향 변환(Unscented Transform)이다. UKF는 비선형 함수 자체를 근사하는 대신 시그마 포인트(Sigma Point)라고 불리는 결정론적으로 선택된 대표 상태 샘플을 사용한다. 이 포인트들은 현재 상태 분포의 평균(Mean)과 공분산(Covariance)을 표현하며, 각각 실제 비선형 시스템 방정식을 통과하여 전파된다.
+
+상태 벡터(State Vector)의 차원이 n일 때 일반적인 UKF는 상태 공분산을 이용하여 추정 평균 주변에 간결한 시그마 포인트 집합을 생성한다. 스케일링 매개변수(Scaling Parameter)는 이러한 포인트가 얼마나 넓게 분포할지와 각 포인트의 가중치가 재구성된 통계량에 어떻게 기여할지를 결정한다. 시그마 포인트 방식은 불확실성을 기하학적으로 표현하며, 운동 모델이나 측정 함수의 미분을 계산하지 않고도 비선형 변환에 따른 분포의 변형을 반영할 수 있도록 한다.
+
+예측 단계(Prediction Stage)에서는 모든 시그마 포인트가 비선형 운동 모델(Nonlinear Motion Model)을 통해 전파된다. 예를 들어 이동 로봇(Mobile Robot)의 모델에는 위치(Position), 속도(Velocity), 자세(Orientation), 각속도(Angular Rate), 가속도(Acceleration), 센서 바이어스(Sensor Bias) 사이의 비선형 관계가 포함될 수 있다. 전파가 완료되면 변환된 시그마 포인트를 미리 정의된 가중치로 다시 결합하여 예측 상태의 평균과 공분산을 계산한다. 이후 동역학과 모델링되지 않은 외란의 불확실성을 표현하기 위해 프로세스 잡음(Process Noise)을 반영한다.
+
+측정 업데이트 단계(Measurement-Update Stage)에서는 예측된 시그마 포인트에 센서 측정 모델(Sensor Measurement Model)을 적용한다. 각 시그마 포인트를 예상 측정 공간(Expected Measurement Space)으로 변환하여 예측 관측값의 분포를 생성한다. 이들의 가중 평균은 예측 측정값을 형성하고, 분산 정도는 측정 공분산(Measurement Covariance)을 결정한다. 이후 예측 상태와 측정값 사이의 교차 공분산(Cross-Covariance)을 이용하여 칼만 이득(Kalman Gain)을 계산하고 실제 센서 관측값으로 상태를 보정한다.
+
+이러한 메커니즘은 센서 관측값이 강한 비선형 관계를 포함할 때 특히 유용하다. 레이더의 거리 및 방위각(Range and Bearing) 측정, 카메라의 원근 기하(Perspective Geometry), 회전으로 표현되는 자세, 비선형 차량 운동 모델은 1차 선형화(First-Order Linearization) 방식에 어려움을 줄 수 있다. UKF는 여러 대표 포인트에서 비선형 함수를 직접 평가하므로 확장 칼만 필터가 국부적인 야코비안 근사에만 의존할 때 손실될 수 있는 비선형 효과를 포착할 수 있다.
+
+로봇 다중 센서 융합에서는 고주기 IMU 측정값이 연속적인 운동 예측(Motion Prediction)을 수행하고, 상대적으로 저주기의 센서들이 보정 관측값(Correction Observation)을 제공할 수 있다. GNSS는 전역 위치(Global Position)를 제약하고, 라이다는 기하학적 자세 정보를 제공하며, 카메라는 시각 오도메트리(Visual Odometry) 또는 랜드마크 관측(Landmark Observation)을 제공할 수 있다. 레이더는 거리 및 속도 측정값을 제공할 수 있다. UKF는 이러한 이질적이고 비동기적인 측정값이 입력되는 순서대로 처리하면서 통합된 확률적 상태를 유지할 수 있다.
+
+상태 벡터는 추정 목적(Estimation Objective)에 따라 설계해야 한다. 이동 로봇은 3차원 위치, 선형 속도(Linear Velocity), 자세, 가속도계 바이어스(Accelerometer Bias), 자이로스코프 바이어스(Gyroscope Bias)를 추정할 수 있다. 추가적인 상태에는 보정 매개변수(Calibration Parameter), 스케일 계수(Scale Factor) 또는 기타 천천히 변화하는 물리량을 포함할 수 있다. 그러나 상태 차원이 증가하면 시그마 포인트의 수와 계산 비용도 증가하므로 양산 구현에서는 필요한 추정 성능을 실질적으로 향상시키는 상태만 포함해야 한다.
+
+자세(Orientation)는 3차원 회전이 일반적인 유클리드 벡터(Euclidean Vector)처럼 동작하지 않기 때문에 특별한 주의가 필요하다. 자세 매개변수를 직접 평균하면 특히 회전량이 커질 때 수치적 또는 기하학적 불일치가 발생할 수 있다. 실제 UKF 구현에서는 쿼터니언(Quaternion), 오차 상태 표현(Error-State Representation) 또는 다양체 인식 연산(Manifold-Aware Operation)을 사용하여 시그마 포인트 생성, 전파 및 상태 보정이 3차원 회전의 기하학적 특성과 일관성을 유지하도록 구성할 수 있다.
+
+프로세스 잡음과 측정 잡음(Measurement Noise)은 UKF 성능의 핵심 요소이다. 프로세스 잡음 공분산(Process-Noise Covariance)은 로봇 동역학, 제어 입력, 관성 적분(Inertial Integration), 모델링되지 않은 외란의 불확실성을 나타낸다. 측정 공분산은 센서의 불확실성을 표현한다. 이러한 값이 실제 불확실성을 과소평가하면 필터가 지나치게 확신하는 상태가 되어 유용한 보정값을 거부할 수 있다. 반대로 공분산이 지나치게 크면 불안정하거나 불필요하게 잡음이 많은 추정 결과가 발생할 수 있으므로 현실적인 잡음 특성화(Noise Characterization)가 중요하다.
+
+다중 센서 시스템에서는 비선형 추정기와 별개로 동기화(Synchronization), 좌표 변환(Coordinate Transformation), 보정(Calibration) 문제도 해결해야 한다. 카메라, 라이다, 레이더, GNSS, IMU의 관측값은 서로 다른 타임스탬프(Timestamp)와 좌표계(Coordinate Frame)에서 생성될 수 있다. 외부 변환(Extrinsic Transformation)은 각 센서 좌표계 사이의 관계를 정확하게 정의해야 하며, 시간 정렬(Temporal Alignment) 또는 운동 보상(Motion Compensation)은 측정 시점 사이의 로봇 움직임을 반영해야 한다. UKF 자체가 잘못된 보정으로 발생한 체계적 오차(Systematic Error)를 자동으로 보상할 수는 없다.
+
+강건한 융합(Robust Fusion)을 위해서는 측정값 검증(Measurement Validation)도 필요하다. GNSS 다중 경로(GNSS Multipath), 시각 추적 실패(Visual Tracking Failure), 라이다 성능 저하, 레이더 모호성(Radar Ambiguity), 진동 또는 통신 장애로 인해 센서 관측값의 신뢰성이 저하될 수 있다. 혁신 통계(Innovation Statistics)를 예상 측정 불확실성과 비교하여 일관되지 않은 관측값을 탐지할 수 있다. 이상치 제거(Outlier Rejection), 적응형 공분산 조정(Adaptive Covariance Adjustment), 센서 상태 모니터링(Sensor-Health Monitoring), 또는 고장난 센싱 양식의 일시적 제외를 통해 손상된 측정값이 융합 상태 추정값을 불안정하게 만드는 것을 방지할 수 있다.
+
+확장 칼만 필터와 비교하면 UKF는 야코비안 행렬을 유도하고 유지할 필요가 없으며, 적절한 문제에서는 비선형 불확실성 전파(Nonlinear Uncertainty Propagation)를 더욱 효과적으로 수행할 수 있다. 반면 매 업데이트마다 여러 개의 시그마 포인트를 운동 모델과 측정 모델을 통해 전파해야 하므로 계산량이 증가한다. 따라서 UKF의 상대적인 이점은 상태 차원, 비선형성의 정도, 업데이트 주기(Update Frequency), 사용 가능한 엣지 컴퓨팅(Edge Computing) 자원, 요구되는 추정 정확도에 따라 달라진다.
+
+따라서 UKF는 EKF를 무조건적으로 대체하는 우수한 방법으로 간주하기보다 전체 센서 융합 아키텍처(Sensor-Fusion Architecture)의 일부로 선택해야 한다. UKF는 비선형 변환의 영향이 크고, 야코비안을 구하기 어렵거나 오류가 발생하기 쉬우며, 계산 자원이 시그마 포인트 전파를 허용하는 경우 특히 유용하다. 정확한 모델, 보정, 시간 동기화, 잡음 추정(Noise Estimation), 고장 처리(Fault Handling)와 결합하면 실시간 비선형 다중 센서 상태 추정(Real-Time Nonlinear Multi-Sensor State Estimation)을 위한 강력한 프레임워크를 제공한다.
+
+## 06.04. Particle Filter Based Multi Sensor Fusion [w/Code]
+
+![](images/image4.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+파티클 필터(Particle Filter) 기반 다중 센서 융합(Multi-Sensor Fusion)은 시스템의 동역학(Dynamics), 측정값 또는 불확실성(Uncertainty)을 가우시안 가정(Gaussian Assumption)만으로 적절하게 표현하기 어려운 로봇 시스템을 위한 확률적 상태 추정(Probabilistic State Estimation) 프레임워크를 제공한다. 평균과 공분산만으로 상태를 표현하는 대신, 파티클 필터는 파티클(Particle)이라 불리는 가중치가 부여된 샘플 집합을 이용하여 사후 확률 분포(Posterior Probability Distribution)를 표현한다. 이를 통해 비선형(Nonlinear), 비가우시안(Non-Gaussian), 심지어 다중 모드(Multimodal) 상태 분포까지 표현할 수 있다.
+
+각 파티클은 로봇 또는 환경이 가질 수 있는 상태에 대한 하나의 가설(Hypothesis)을 나타낸다. 하나의 파티클에는 위치(Position), 자세(Orientation), 속도(Velocity), 센서 바이어스(Sensor Bias) 또는 상태 추정 문제에 필요한 기타 변수들이 포함될 수 있다. 각 파티클에 연결된 가중치(Weight)는 해당 가설이 현재 관측값과 얼마나 잘 일치하는지를 나타낸다. 따라서 전체 파티클 집단(Particle Population)은 불확실성을 하나의 가우시안 분포로 제한하지 않고 숨겨진 상태(Hidden State)의 확률 분포 자체를 근사한다.
+
+파티클 필터링(Particle Filtering)은 재귀적 베이지안 추정(Recursive Bayesian Estimation)을 기반으로 한다. 이전의 사후 확률 분포가 주어지면 필터는 먼저 운동 모델(Motion Model) 또는 프로세스 모델(Process Model)에 따라 각각의 상태 가설이 어떻게 변화하는지를 예측한다. 이후 새로운 센서 관측값을 평가하여 각각의 예측 가설에서 해당 관측값이 나타날 가능성을 계산한다. 이렇게 계산된 우도(Likelihood)는 파티클 가중치를 수정하고, 이전 정보와 최신 측정값을 모두 조건으로 하는 사후 확률 분포의 근사치를 생성한다.
+
+예측 단계(Prediction)에서는 각각의 파티클이 로봇의 운동 모델을 통해 독립적으로 전파된다. 이동 로봇(Mobile Robot)의 경우 이 모델은 휠 오도메트리(Wheel Odometry), 명령 속도(Commanded Velocity), 관성 측정 장치(IMU) 측정값 또는 차량 동역학(Vehicle Dynamics)을 이용하여 다음 자세(Pose)를 추정할 수 있다. 전파 과정에서는 무작위 프로세스 잡음(Process Noise)을 샘플링하여 파티클 집단이 운동의 불확실성을 표현하도록 한다. 따라서 파티클은 하나의 결정론적 궤적을 따르는 대신 시스템 동역학과 불확실성에 따라 상태 공간(State Space)으로 확산된다.
+
+측정 업데이트 단계(Measurement-Update Stage)에서는 입력되는 센서 관측값을 사용하여 예측된 파티클을 평가한다. 측정 우도 모델(Measurement Likelihood Model)은 카메라(Camera), 라이다(LiDAR), 레이더(Radar), 위성항법시스템(GNSS) 또는 기타 센서의 관측값이 각 파티클이 나타내는 상태와 얼마나 일치하는지를 계산한다. 관측값을 잘 설명하는 파티클에는 높은 가중치가 부여되고, 일치하지 않는 가설에는 낮은 가중치가 부여된다. 여러 센서의 측정값은 순차적으로 통합하거나 통계적 관계가 적절히 고려된 경우 결합 우도 모델(Combined Likelihood Model)을 통해 처리할 수 있다.
+
+재표본화(Resampling)는 계산 자원을 상태 공간에서 가능성이 높은 영역에 집중시키는 메커니즘이다. 측정 업데이트가 반복되면 소수의 파티클이 대부분의 확률 질량(Probability Mass)을 차지하고 나머지 많은 파티클의 가중치는 거의 무시할 수 있는 수준으로 감소할 수 있다. 재표본화는 높은 가중치를 가진 파티클을 우선적으로 선택하고 가능성이 낮은 파티클을 제거하여 새로운 집단을 생성한다. 이를 통해 유용한 가설을 유지할 수 있지만, 지나치게 적극적으로 재표본화를 수행하면 파티클 다양성(Particle Diversity)이 감소할 수 있다.
+
+파티클 퇴화(Particle Degeneracy)는 소수의 샘플을 제외한 거의 모든 파티클의 가중치가 0에 가까워지는 현상이다. 일반적으로 유효 샘플 크기(Effective Sample Size)를 사용하여 매 업데이트마다 재표본화를 수행하는 대신 실제로 재표본화가 필요한 시점을 판단한다. 또 다른 문제는 파티클 빈곤화(Particle Impoverishment)로, 성공적인 파티클을 반복적으로 복제하면서 전체 집단의 다양성이 사라지는 현상이다. 적절한 프로세스 잡음, 적응형 재표본화(Adaptive Resampling), 개선된 제안 분포(Proposal Distribution), 또는 제어된 파티클 주입(Particle Injection)을 이용하여 대안 가설을 유지할 수 있다.
+
+여러 개의 가설을 동시에 유지할 수 있다는 점은 확장 칼만 필터(Extended Kalman Filter, EKF)나 무향 칼만 필터(Unscented Kalman Filter, UKF)와 같은 가우시안 필터(Gaussian Filter)에 비해 파티클 필터가 가지는 주요 장점이다. 로봇이 초기에는 여러 위치 중 어디에 있는지 불확실할 수 있고, 시각 또는 기하학적 관측이 모호한 데이터 연관(Data Association)을 생성할 수 있으며, 대칭적인 환경에서는 여러 개의 타당한 자세가 발생할 수 있다. 파티클 필터는 추가 측정값이 잘못된 가설을 제거할 충분한 근거를 제공할 때까지 이러한 서로 다른 확률 모드(Probability Mode)를 유지할 수 있다.
+
+이러한 특성 때문에 파티클 필터는 위치 추정(Localization)에 특히 적합하다. 몬테카를로 위치 추정(Monte Carlo Localization)에서 파티클은 로봇의 후보 자세를 나타내며, 센서 관측값이 입력될수록 지도와 일치하는 위치 주변으로 파티클이 점차 집중된다. 라이다 스캔은 점유 지도(Occupancy Map)와 비교할 수 있고, 카메라는 랜드마크(Landmark) 또는 의미 관측(Semantic Observation)을 제공할 수 있으며, 휠 오도메트리 또는 IMU 데이터는 운동을 전파할 수 있다. 따라서 전역 위치 추정(Global Localization)과 위치 추정 실패로부터의 복구가 파티클 기반 추정의 대표적인 응용 분야가 된다.
+
+다중 센서 융합에서는 서로 다른 센서가 근본적으로 다른 측정 구조(Measurement Structure)를 제공하기 때문에 세심하게 설계된 우도 함수(Likelihood Function)가 필요하다. GNSS는 전역 위치 관측을 제공할 수 있고, 레이더는 거리와 속도를 제공하며, 라이다는 기하학적 스캔 대응(Geometric Scan Correspondence)을 생성할 수 있다. 카메라는 특징(Feature), 객체(Object) 또는 랜드마크를 관측할 수 있다. 각 측정 모델은 센서 정보를 각각의 파티클이 나타내는 상태 가설에 대해 일관되게 평가할 수 있는 우도로 변환해야 한다.
+
+센서 불확실성(Sensor Uncertainty)은 이러한 우도 계산에 직접 반영되어야 한다. 정확도가 높은 관측값은 집중된 우도 분포를 생성하여 해당 측정값과 일치하는 파티클을 강하게 선호해야 한다. 잡음이 많거나 성능이 저하된 센서는 더 넓은 우도 분포를 사용하여 타당한 가설을 너무 일찍 제거하지 않도록 해야 한다. 따라서 동적 공분산 추정(Dynamic Covariance Estimation), 센서 상태 정보(Sensor-Health Information), 환경 조건(Environmental Condition), 신뢰도 척도(Confidence Measure)를 파티클 가중치 계산에 반영하여 강건한 융합(Robust Fusion)을 구현할 수 있다.
+
+비동기 센서(Asynchronous Sensor)는 타임스탬프가 부여된 측정값이 입력될 때마다 파티클 분포를 업데이트하는 방식으로 처리할 수 있다. 그러나 센서 관측 시점 사이에 로봇이 상당히 이동할 수 있기 때문에 정확한 시간 정렬(Temporal Alignment)은 여전히 중요하다. 또한 좌표 변환(Coordinate Transformation)과 외부 보정(Extrinsic Calibration)을 통해 측정값을 서로 호환되는 기준 좌표계(Reference Frame)에 배치해야 한다. 다른 확률적 추정기와 마찬가지로 파티클 필터도 잘못된 보정이나 동기화로 발생하는 체계적 오차(Systematic Error)를 본질적으로 자동 수정할 수는 없다.
+
+파티클 필터는 많은 파티클에 대해 운동 전파와 우도 평가를 반복적으로 수행해야 하므로 상당한 계산 자원(Computational Resource)을 요구한다. 계산 비용은 파티클 수, 상태 차원(State Dimension), 센서 처리 복잡도, 업데이트 주기(Update Frequency)가 증가함에 따라 커진다. 효율적인 구현에서는 멀티코어 CPU 또는 GPU를 이용하여 파티클 연산을 병렬화하고, 비용이 높은 측정 평가를 줄이며, 파티클 수를 적응적으로 조정하거나 계층적 또는 거친 단계에서 정밀 단계로 진행하는 전략(Coarse-to-Fine Strategy)을 적용하여 실시간 요구사항을 충족할 수 있다.
+
+파티클 수(Number of Particles)는 중요한 엔지니어링 절충 요소(Engineering Trade-Off)이다. 파티클이 너무 적으면 상태 공간의 중요한 영역을 충분히 포함하지 못하여 올바른 가설을 잃을 수 있다. 반대로 지나치게 많은 파티클은 확률 분포를 더욱 충실하게 표현하지만 메모리 사용량과 계산량을 증가시킨다. 필요한 파티클 수는 상태 차원과 불확실성의 크기에 크게 영향을 받기 때문에 파티클 필터는 확률적 문제를 비교적 작은 상태 공간으로 표현할 수 있을 때 특히 효과적이다.
+
+실제 로보틱스(Robotics)에서는 모든 상태 변수를 파티클 필터 하나로 추정하기보다 다른 추정 방법과 결합하여 사용하는 경우가 많다. 파티클 기반 추정기(Particle-Based Estimator)가 전역 자세 가설(Global Pose Hypothesis)을 유지하는 동안 EKF, UKF, 시각-관성 추정기(Visual-Inertial Estimator) 또는 국부 최적화기(Local Optimizer)가 고주기의 연속적인 운동을 추정할 수 있다. 이러한 하이브리드 아키텍처(Hybrid Architecture)는 파티클이 제공하는 다중 모드 추론(Multimodal Reasoning) 능력을 활용하면서 고차원 상태 전체를 샘플로 표현하는 데 필요한 계산 비용을 줄일 수 있다.
+
+따라서 파티클 필터 기반 다중 센서 융합은 모호성(Ambiguity), 비선형 동역학(Nonlinear Dynamics), 비가우시안 불확실성 또는 여러 개의 경쟁 가설(Competing Hypothesis)이 상태 추정 문제의 핵심 특성일 때 가장 큰 가치를 가진다. 그 성능은 적절한 제안 분포 생성(Proposal Generation), 측정 우도, 재표본화 전략, 보정, 동기화 및 계산 구조 설계에 의해 결정된다. 이러한 요소를 신중하게 설계하면 파티클 기반 추정은 복잡한 로봇 환경에서 강건한 위치 추정과 센서 융합을 구현하기 위한 유연한 기반을 제공한다.
+
+## 06.05. Factor Graph Optimization GTSAM g2o [w/Code]
+
+![](images/image5.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+팩터 그래프 최적화(Factor Graph Optimization)는 미지의 변수와 센서 측정값 사이의 관계를 희소 그래픽 모델(Sparse Graphical Model)로 표현하여 로봇 상태를 추정하는 일반적인 프레임워크를 제공한다. 이전 정보를 하나의 현재 추정값과 공분산(Covariance)으로 요약하는 재귀 필터(Recursive Filter)와 달리, 팩터 그래프는 시간에 걸친 여러 상태 사이의 제약조건(Constraint)을 유지할 수 있다. 따라서 복잡한 종속 관계를 포함하는 다중 센서 융합(Multi-Sensor Fusion), 위치 추정(Localization), 동시적 위치 추정 및 지도 작성(SLAM), 보정(Calibration), 궤적 추정(Trajectory Estimation)에 특히 적합하다.
+
+팩터 그래프(Factor Graph)는 변수 노드(Variable Node)와 팩터 노드(Factor Node)로 구성된다. 변수 노드는 로봇 자세(Pose), 속도(Velocity), IMU 바이어스(IMU Bias), 랜드마크(Landmark), 보정 매개변수(Calibration Parameter), 객체 상태(Object State)처럼 추정해야 하는 값을 나타낸다. 팩터 노드는 이러한 변수들을 연결하는 확률적 제약조건(Probabilistic Constraint)을 나타낸다. 따라서 오도메트리(Odometry), IMU 측정값, GNSS 관측값, 카메라 특징(Camera Feature), 라이다 정합(LiDAR Registration), 레이더 측정값, 루프 폐쇄(Loop Closure)를 각각의 불확실성 모델과 함께 하나의 수학적 구조 안에서 표현할 수 있다.
+
+확률적 정식화(Probabilistic Formulation)는 센서 융합 문제를 최대 사후 확률 추정(Maximum A Posteriori Estimation) 문제로 변환한다. 각각의 팩터는 관측된 측정값과 연결된 상태 변수에서 예측된 측정값 사이의 차이를 나타내는 오차 항(Error Term)을 제공한다. 측정 불확실성(Measurement Uncertainty)은 해당 잔차(Residual)가 해에 얼마나 강하게 영향을 미치는지를 결정한다. 적절한 확률 모델을 가정하면 최적화는 모든 활성 팩터(Active Factor)가 생성하는 가중 오차(Weighted Error)의 합을 최소화하는 상태 구성을 탐색한다.
+
+간단한 예로 로봇 궤적 추정에서는 연속된 자세 변수(Pose Variable)를 오도메트리 팩터(Odometry Factor)로 연결할 수 있다. GNSS 팩터는 특정 자세를 전역 좌표(Global Coordinate)에 제약할 수 있으며, 라이다 또는 시각 관측은 상대적인 기하학적 제약조건(Geometric Constraint)을 추가할 수 있다. IMU 팩터는 시간에 따른 위치, 속도, 자세, 바이어스 상태를 연결할 수 있다. 이전에 방문했던 위치가 다시 인식되면 루프 폐쇄 팩터가 시간적으로 멀리 떨어진 궤적 상태를 연결하여 전체 추정 과정에서 누적된 드리프트(Drift)를 보정할 수 있다.
+
+로봇의 측정 모델에는 회전(Rotation), 투영(Projection), 거리(Range), 강체 운동(Rigid-Body Motion)과 관련된 비선형 변환이 빈번하게 포함되므로 비선형 최적화(Nonlinear Optimization)가 필요하다. 팩터 그래프 시스템은 일반적으로 현재 상태 추정값 주변에서 잔차 함수를 선형화하고 반복적으로 상태 증분(State Increment)을 계산한다. 가우스-뉴턴(Gauss-Newton) 또는 레벤버그-마쿼트(Levenberg-Marquardt) 최적화와 관련된 방법이 일반적으로 사용되며, 반복적인 선형화를 통해 전체 제약조건을 더욱 잘 만족하는 상태로 추정값을 수렴시킨다.
+
+희소성(Sparsity)은 팩터 그래프의 가장 중요한 계산적 특성 중 하나이다. 하나의 센서 측정값은 일반적으로 전체 상태 중 일부 변수에만 의존하므로 대부분의 변수는 서로 직접 연결되지 않는다. 그 결과 희소 야코비안 행렬(Sparse Jacobian Matrix)과 희소 정보 행렬(Sparse Information Matrix)이 생성되며, 특수한 수치 계산 기법을 통해 이러한 특성을 활용할 수 있다. 따라서 변수 순서화(Variable Ordering), 희소 행렬 분해(Sparse Matrix Factorization), 제거 전략(Elimination Strategy), 증분 업데이트(Incremental Update)는 메모리 사용량과 최적화 속도에 큰 영향을 미친다.
+
+GTSAM은 팩터 그래프 기반 추정(Factor-Graph-Based Estimation)과 평활화(Smoothing)를 위한 널리 사용되는 소프트웨어 프레임워크이다. GTSAM에서는 키(Key)를 통해 변수를 표현하고, 팩터를 통해 측정값을 표현하며, 이러한 관계의 집합으로 비선형 추정 문제를 구성한다. 로봇 응용 시스템은 자세, 랜드마크, 관성 측정값, 사전 정보(Prior), 센서 관측값에 대한 팩터를 구성한 후 배치 최적화(Batch Optimization) 또는 증분 최적화(Incremental Optimization)를 통해 그래프를 해결할 수 있다. 이러한 설계는 확률적 그래픽 모델링(Probabilistic Graphical Modeling)을 소프트웨어 아키텍처 내부에 명시적으로 표현한다.
+
+증분 평활화(Incremental Smoothing)는 지속적으로 동작하는 로봇에서 특히 중요하다. 새로운 측정값이 입력될 때마다 전체 최적화 문제를 처음부터 다시 계산하는 대신, iSAM2와 같은 알고리즘은 수정이 필요한 그래프 부분만 재선형화(Relinearization)하고 재구성하여 기존 해를 업데이트한다. 이를 통해 장시간 동작하는 상태 추정 시스템은 반복적인 전체 배치 최적화에 필요한 계산 비용을 피하면서 새로운 측정값과 루프 폐쇄 정보를 지속적으로 반영할 수 있다.
+
+g2o 프레임워크는 밀접하게 관련된 관점에서 그래프 최적화(Graph Optimization)를 수행하며, 그래프 구조를 가진 상태 추정 문제의 비선형 최소제곱 최적화(Nonlinear Least-Squares Optimization)에 널리 사용된다. 정점(Vertex)은 미지의 상태를 나타내고 간선(Edge)은 상태 사이의 제약조건을 나타낸다. 사용자는 응용 분야에 적합한 오차 함수(Error Function), 정보 행렬(Information Matrix), 최적화 동작을 정의한다. 이러한 구조를 통해 g2o는 자세 그래프 최적화(Pose-Graph Optimization), 시각 SLAM(Visual SLAM), 지도 작성(Mapping), 기타 기하학적 상태 추정 문제에 활용된다.
+
+GTSAM과 g2o는 서로 유사한 최적화 문제를 해결할 수 있지만 추상화 방식과 일반적인 작업 흐름(Workflow)에는 차이가 있다. GTSAM은 팩터 그래프, 확률적 추론(Probabilistic Inference), 평활화, 재사용 가능한 센서 팩터를 강조하는 반면, g2o는 정점과 간선을 이용한 범용 그래프 기반 비선형 최적화를 강조한다. 따라서 두 프레임워크의 선택에서는 기존 소프트웨어 아키텍처, 필요한 센서 모델, 증분 상태 추정 요구사항, 사용자 정의 요구사항, 계산 제약조건, 주변 로보틱스 스택(Robotics Stack)과의 통합성을 고려해야 한다.
+
+IMU 사전 적분(IMU Pre-Integration)은 다중 센서 융합을 위한 팩터 그래프 설계의 중요한 사례이다. 원시 관성 측정값은 카메라, 라이다 또는 GNSS보다 훨씬 높은 주기로 입력되기 때문에 모든 IMU 샘플마다 별도의 최적화 상태를 생성하는 것은 비효율적이다. 사전 적분은 선택된 상태 사이에서 다수의 가속도계와 자이로스코프 측정값을 요약하면서 운동 및 바이어스와의 관계를 보존한다. 이를 통해 관성 정보를 간결한 제약조건 형태로 그래프에 입력할 수 있다.
+
+잘못된 측정값이 최적화 결과를 크게 왜곡할 수 있으므로 강건 추정(Robust Estimation)이 필요하다. 시각 특징의 잘못된 대응(Feature Mismatch), 잘못된 루프 폐쇄(False Loop Closure), GNSS 다중 경로(GNSS Multipath), 라이다 정합 실패, 레이더 모호성(Radar Ambiguity)은 실제 궤적과 일치하지 않는 큰 잔차를 생성할 수 있다. 강건 손실 함수(Robust Loss Function)는 극단적인 잔차의 영향을 줄일 수 있으며, 게이팅(Gating), 일관성 검사(Consistency Test), 전환 가능한 제약조건(Switchable Constraint), 센서 상태 로직(Sensor-Health Logic)을 통해 신뢰할 수 없는 관측값이 최적화를 지배하는 것을 방지할 수 있다.
+
+팩터 그래프는 일반적으로 고정된 값으로 취급되는 매개변수까지 추정할 수 있는 자연스러운 메커니즘을 제공한다. 센서 외부 변환(Sensor Extrinsic Transformation), 시간 오프셋(Time Offset), IMU 바이어스, 스케일 계수(Scale Factor), 랜드마크 위치 등을 충분한 관측을 통해 관측 가능(Observable)한 경우 최적화 변수로 포함할 수 있다. 이러한 값을 공동으로 추정하면 일관성을 향상시킬 수 있지만 상태 차원이 증가하고 충분히 제약되지 않은 방향이 발생할 수 있으므로 관측 가능성(Observability)과 매개변수 상관관계(Parameter Correlation)를 신중하게 고려해야 한다.
+
+그래프가 지속적으로 증가하는 시스템에서는 주변화(Marginalization)가 중요해진다. 특히 임베디드 또는 엣지 컴퓨팅(Edge Computing) 플랫폼에서는 로봇이 모든 과거 상태와 측정값을 무기한 유지하기 어렵다. 고정 지연 평활화(Fixed-Lag Smoothing)는 이동하는 시간 구간만 유지하고 오래된 변수를 주변화하면서 관련 정보를 사전 제약조건(Prior Constraint)으로 보존한다. 이를 통해 계산량이 제한되는 필터 방식과 전체 궤적을 대상으로 하는 완전 평활화(Full Smoothing) 사이에서 실용적인 절충이 가능하다.
+
+EKF 또는 UKF 기반 융합과 비교하면 팩터 그래프 최적화는 새로운 정보가 입력되었을 때 이전 상태를 다시 고려할 수 있다. 예를 들어 몇 분 후에 탐지된 루프 폐쇄는 현재 상태만 수정하는 것이 아니라 이전 자세를 수정하고 전체 궤적에 걸쳐 보정량을 분산시킬 수 있다. 그 대신 더 많은 메모리 사용량, 최적화 복잡도, 구현 부담이 발생한다. 따라서 팩터 그래프는 전역 일관성(Global Consistency)과 과거 상태의 소급 보정(Retrospective Correction)이 추가적인 계산 비용을 정당화할 수 있는 경우 특히 가치가 높다.
+
+양산 구현(Production Implementation)에서는 최적화기 자체뿐만 아니라 다양한 시스템 요소를 함께 고려해야 한다. 정확한 타임스탬프(Timestamp), 좌표계(Coordinate Frame), 센서 보정, 공분산 모델(Covariance Model), 초기화(Initialization), 이상치 제거(Outlier Rejection), 수치적 조건화(Numerical Conditioning), 고장 복구(Failure Recovery)가 모두 중요하다. 또한 계산량이 실시간 한계 내에서 유지되도록 그래프를 관리해야 한다. 잔차와 최적화 수렴(Optimization Convergence)을 모니터링하면 센서 품질, 보정 드리프트(Calibration Drift), 상태 추정 파이프라인 내부의 불일치를 진단하는 데 유용한 정보를 얻을 수 있다.
+
+궁극적으로 팩터 그래프 최적화는 다중 센서 융합을 순차적인 측정값 보정(Sequential Measurement Correction) 문제에서 여러 제약조건을 공동으로 추론하는 문제(Joint Constraint Reasoning)로 전환한다. GTSAM과 g2o는 이러한 접근법을 구현하기 위한 실용적인 기반을 제공하며, 배치 최적화, 증분 평활화, 강건 팩터(Robust Factor), 사전 적분, 주변화 등을 통해 실제 로봇 시스템에 적용할 수 있다. 적절하게 설계된 팩터 그래프는 이질적인 센서 정보로부터 공간적·시간적으로 일관된 상태 추정값을 생성하기 위한 확장 가능한 프레임워크(Scalable Framework)를 제공한다.
+
+## 06.06. Camera LiDAR Deep Fusion BEVFusion SparseFusion [w/Code]
+
+![](images/image6.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+카메라-라이다 심층 융합(Camera--LiDAR Deep Fusion)은 학습 기반 인지 아키텍처(Learned Perception Architecture) 내부에서 시각적 외형 정보와 정밀한 3차원 기하 정보의 상호 보완적인 장점을 결합한다. 카메라(Camera)는 밀집된 질감(Texture), 색상, 의미적 단서(Semantic Cue), 장거리 시각적 문맥을 제공하고, 라이다(LiDAR)는 정확한 깊이와 공간 구조를 제공한다. BEVFusion과 SparseFusion 같은 심층 융합(Deep Fusion) 방식은 원시 측정값이나 최종 검출 결과만 결합하는 대신 신경망 특징 표현(Neural Feature Representation) 내부에서 이러한 센싱 양식을 통합한다.
+
+핵심적인 문제는 카메라와 라이다 데이터가 근본적으로 서로 다른 표현 공간에 존재한다는 것이다. 카메라 영상은 2차원 픽셀 그리드(Pixel Grid)에 정의된 밀집된 원근 투영(Perspective Projection)인 반면, 라이다는 실제 3차원 공간에 분포된 희소 포인트(Sparse Point)를 생성한다. 따라서 효과적인 융합을 위해서는 각 센싱 양식에 유용한 정보를 보존하면서 공간적 대응 관계(Spatial Correspondence)를 형성하는 메커니즘이 필요하다. 보정(Calibration), 좌표 변환(Coordinate Transformation), 특징 투영(Feature Projection), 학습 기반 표현 정렬(Learned Representation Alignment)이 이러한 과정의 기반을 구성한다.
+
+BEVFusion은 다중 센서 정보를 공통 조감도(Bird's-Eye View, BEV) 좌표 공간으로 변환하여 이러한 표현의 불일치를 해결한다. 카메라 영상은 이미지 백본(Image Backbone)을 통해 처리되어 의미 특징 맵(Semantic Feature Map)을 생성하며, 이후 원근 시점에서 BEV 특징으로 변환된다. 라이다 포인트는 독립적으로 기하학적 BEV 표현으로 인코딩된다. 두 센싱 양식이 호환 가능한 공간 좌표계에 배치되면 이후 인지 작업을 위해 특징을 효율적으로 결합할 수 있다.
+
+카메라 분기(Camera Branch)는 일반적으로 합성곱(Convolution) 또는 트랜스포머(Transformer) 기반 특징 추출기를 통해 처리되는 여러 개의 주변 시야 영상(Surround-View Image)에서 시작한다. 이미지 특징은 객체의 외형, 경계, 도로 구조, 표지판, 의미적 문맥 정보를 포함하지만 신뢰성 높은 실제 거리 깊이를 직접 제공하지는 않는다. 따라서 다중 센서 융합이 이루어지기 전에 시점 변환 단계(View-Transformation Stage)를 이용하여 카메라 보정과 깊이 관련 추론을 기반으로 원근 특징을 3차원 또는 BEV 공간으로 투영하거나 확장한다.
+
+라이다 분기(LiDAR Branch)는 희소한 포인트 측정값을 효율적인 신경망 처리가 가능한 표현으로 변환한다. 포인트는 복셀화(Voxelization)되거나 필러(Pillar) 구조로 구성될 수 있으며, 이후 희소 합성곱 신경망(Sparse Convolutional Network) 또는 포인트 클라우드 인코더(Point-Cloud Encoder)가 기하학적 특징을 추출한다. 라이다는 정확한 거리, 객체 형상, 자유 공간 경계(Free-Space Boundary), 수직 구조를 제공하여 융합 과정에서 강력한 기하학적 기준이 된다. 그러나 희소성 때문에 장거리 객체나 포인트가 적게 측정된 표면에서는 의미적 세부 정보가 제한될 수 있다.
+
+카메라와 라이다 특징이 공유 BEV 공간으로 변환되면 BEVFusion은 특징 연결(Feature Concatenation), 합성곱 기반 융합(Convolutional Fusion), 어텐션(Attention) 또는 이와 관련된 학습 연산을 이용하여 이들을 결합한다. 결과적으로 생성되는 표현에는 로봇 중심 공간 좌표계(Robot-Centered Spatial Coordinate System)에 정렬된 기하 정보와 의미 정보가 함께 포함된다. 이후 검출(Detection), 분할(Segmentation), 점유 추정(Occupancy Estimation), 지도 예측(Map Prediction) 헤드는 각 센서 출력을 독립적으로 처리하는 대신 통합 특징 맵(Unified Feature Map)을 사용할 수 있다.
+
+BEV 표현의 주요 장점은 이동 로봇(Mobile Robot)의 공간 추론 방식과 높은 호환성을 가진다는 것이다. 내비게이션(Navigation)과 자율주행 의사결정은 객체 위치, 자유 공간, 차선, 장애물, 운동 관계가 직접적으로 중요한 지면 기준 좌표계에서 자연스럽게 표현된다. 공유 BEV 표현은 인지 결과를 점유 지도(Occupancy Map), 국부 경로 계획(Local Planning), 추적(Tracking), 궤적 생성(Trajectory Generation) 구성 요소와 자연스럽게 정렬할 수 있기 때문에 후속 시스템과의 통합도 단순화한다.
+
+SparseFusion은 밀집된 BEV 특징 그리드에 전적으로 의존하기보다 희소 객체 수준(Sparse Object-Level) 또는 쿼리 지향 표현(Query-Oriented Representation)을 강조하는 또 다른 심층 다중 센서 융합 방식이다. 희소 표현은 잠재적으로 의미 있는 객체나 공간 가설(Spatial Hypothesis)에 계산을 집중함으로써 넓은 빈 영역에 대한 불필요한 처리를 줄일 수 있다. 카메라와 라이다 정보는 객체의 기하 구조, 의미 정보, 교차 양식 관계(Cross-Modal Relationship)를 인코딩하는 학습된 쿼리(Learned Query) 또는 희소 특징(Sparse Feature)을 통해 연관될 수 있다.
+
+쿼리 기반 융합(Query-Based Fusion)은 주요 목적이 객체 중심 인지(Object-Centric Perception)인 경우 특히 유용하다. 모든 공간 위치에서 밀집된 예측을 생성하는 대신 제한된 수의 학습 객체 쿼리(Object Query)가 이미지와 포인트 클라우드 특징으로부터 필요한 정보를 수집할 수 있다. 교차 어텐션(Cross-Attention) 메커니즘을 통해 이러한 쿼리는 서로 다른 센싱 양식과 시점에서 관련 정보를 검색한다. 각각의 쿼리는 점진적으로 객체 종류, 위치, 크기, 방향, 신뢰도(Confidence) 등의 속성을 포함하는 객체 가설(Object Hypothesis)로 발전할 수 있다.
+
+심층 융합은 단순한 후기 융합(Late Fusion)보다 센서의 상호 보완적인 특성을 더욱 효과적으로 활용할 수 있다. 라이다 포인트가 적은 먼 거리의 객체도 강한 시각적 정보를 가질 수 있으며, 시각적 외형이 모호한 객체도 라이다에서는 명확한 기하 구조를 가질 수 있다. 학습 기반 융합 모듈은 최종 판단을 생성하기 전에 이러한 신호를 결합하여 하나의 센싱 양식이 다른 센싱 양식의 불확실성을 보완하도록 할 수 있다. 이러한 상호작용이 특징 수준 다중 센서 인지(Feature-Level Multimodal Perception)를 사용하는 핵심적인 이유 중 하나이다.
+
+학습된 신경망을 사용하더라도 정확한 보정은 여전히 필수적이다. 카메라 내부 매개변수(Camera Intrinsic Parameter)는 영상 투영 기하(Image Projection Geometry)를 결정하고, 카메라-라이다 외부 보정(Camera-to-LiDAR Extrinsic Calibration)은 두 센서 좌표계 사이의 강체 변환(Rigid Transformation)을 정의한다. 작은 회전 또는 병진 오차도 특히 장거리에서 특징 위치를 크게 이동시킬 수 있다. 따라서 실제 로봇 시스템에서 신뢰성 높은 교차 양식 대응 관계를 유지하려면 보정 검증(Calibration Validation)과 온라인 모니터링(Online Monitoring)이 필요하다.
+
+시간 동기화(Temporal Synchronization) 역시 중요하다. 카메라 프레임과 라이다 스캔이 반드시 정확히 같은 순간에 획득되는 것은 아니기 때문이다. 타임스탬프가 서로 다르면 로봇 자체 운동(Ego-Motion)과 동적 객체(Dynamic Object)로 인해 센싱 양식 사이에 공간적 불일치가 발생할 수 있다. 하드웨어 동기화(Hardware Synchronization), 정밀 타임스탬프, 자체 운동 보상(Ego-Motion Compensation), 시간 특징 정렬(Temporal Feature Alignment)을 통해 이러한 오차를 줄일 수 있다. 또한 시간 융합(Temporal Fusion)을 통해 이전 프레임의 정보를 통합하면 안정성, 속도 추론, 일시적 가림(Occlusion)에 대한 강건성을 향상시킬 수 있다.
+
+강건한 다중 센서 인지(Robust Multimodal Perception)를 구현하려면 센서 성능 저하와 고장도 고려해야 한다. 카메라는 어둠, 눈부심, 오염 또는 악천후에서 신뢰성이 떨어질 수 있으며, 라이다는 희소한 반환 신호, 강수 아티팩트(Precipitation Artifact), 반사 표면 또는 부분적인 가림의 영향을 받을 수 있다. 융합 신경망은 하나의 센싱 양식에 무조건적으로 의존해서는 안 된다. 학습 과정의 센싱 양식 드롭아웃(Modality Dropout), 신뢰도 기반 융합(Confidence-Aware Fusion), 불확실성 추정(Uncertainty Estimation), 센서 상태 모니터링(Sensor-Health Monitoring), 대체 인지 경로(Fallback Perception Path)를 통해 복원력(Resilience)을 높일 수 있다.
+
+심층 융합 시스템을 학습하려면 센서 스트림이 정확하게 보정되고 동기화되며 주석화(Annotation)된 데이터셋이 필요하다. 데이터 증강(Data Augmentation)은 교차 양식 일관성(Cross-Modal Consistency)을 유지해야 하며, 라이다에 적용되는 기하학적 변환은 이미지 변환 및 보정 매개변수에도 적절하게 대응해야 한다. 센서별 증강(Sensor-Specific Augmentation)을 통해 측정값 누락, 영상 품질 저하, 희소 포인트 클라우드 또는 보정 오차를 모사함으로써 학습된 표현이 실제 운용 환경에서 발생하는 변화에 덜 민감하도록 만들 수 있다.
+
+엣지 배포(Edge Deployment)에서는 계산 아키텍처(Computational Architecture)가 중요한 고려사항이다. 다중 카메라 이미지 백본, 라이다 인코더, 시점 변환, 교차 양식 융합, 예측 헤드(Prediction Head)는 전체적으로 상당한 GPU 메모리와 연산 처리량을 요구할 수 있다. 효율적인 백본 선택, BEV 해상도 감소, 희소 연산(Sparse Computation), 혼합 정밀도 추론(Mixed-Precision Inference), 양자화(Quantization), TensorRT 최적화, 신중한 연산 스케줄링을 적용하면 실시간 로봇 운용에 필요한 인지 정확도를 유지하면서 지연시간을 줄일 수 있다.
+
+따라서 BEVFusion과 SparseFusion은 서로 보완적인 두 가지 아키텍처 원리를 보여준다. BEV 중심 융합(BEV-Oriented Fusion)은 포괄적인 장면 추론(Scene Reasoning)에 적합한 공통의 밀집 공간 표현(Dense Spatial Representation)을 강조하는 반면, 희소 또는 쿼리 지향 융합은 객체 중심 표현과 선택적인 계산(Computational Selectivity)을 강조한다. 실제 시스템에서는 두 개념을 결합하여 점유 인지와 내비게이션에는 밀집 BEV 특징을 사용하고, 객체 검출과 추적에는 희소 쿼리를 사용하는 방식으로 구성할 수 있다.
+
+피지컬 AI(Physical AI)와 자율 로봇(Autonomous Robot)에서 카메라-라이다 심층 융합은 궁극적으로 원시 다중 센서 정보와 구조화된 공간 지능(Structured Spatial Intelligence)을 연결하는 역할을 한다. 의미적인 이미지 정보와 실제 거리 기반 3차원 기하 정보를 정렬함으로써 융합 표현은 객체 검출, 추적, 점유 예측, 의미 지도 작성(Semantic Mapping), 내비게이션, 조작(Manipulation), 월드 모델(World Model) 구축을 지원할 수 있다. 그 효과는 신경망 아키텍처뿐만 아니라 보정, 동기화, 불확실성 처리, 학습 데이터 품질, 실시간 배포 엔지니어링의 완성도에 의해 결정된다.
+
+## 06.07. LiDAR Radar Camera Late Fusion Pipeline [w/Code]
+
+![](images/image7.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+후기 융합(Late Fusion)은 라이다(LiDAR), 레이더(Radar), 카메라(Camera) 데이터를 각각 독립적으로 처리한 후 검출(Detection) 또는 추적(Tracking) 결과를 결합하는 모듈형 다중 센서 인지(Multi-Sensor Perception) 방식이다. 파이프라인 초기 단계에서 서로 다른 원시 측정값(Raw Measurement)을 하나의 공통 표현으로 강제로 통합하는 대신, 각 센서는 고유한 물리적 특성에 최적화된 전문 처리 체인(Processing Chain)을 유지한다. 융합은 의미 있는 객체, 트랙(Track), 또는 환경 가설(Environmental Hypothesis)이 이미 생성된 이후에 수행된다.
+
+카메라 파이프라인(Camera Pipeline)은 주로 영상에서 외형 및 의미 정보(Semantic Information)를 추출한다. 신경망 객체 검출기(Neural Object Detector)는 차량, 보행자, 자전거 이용자, 표지판 및 기타 관련 객체 클래스를 식별하면서 영상 공간 경계 상자(Image-Space Bounding Box), 분할 마스크(Segmentation Mask), 키포인트(Keypoint), 신뢰도 점수(Confidence Score) 등을 추정할 수 있다. 카메라는 풍부한 의미 구분 능력과 높은 각도 해상도(Angular Resolution)를 제공하지만, 특히 저조도, 눈부심, 가림(Occlusion), 악천후 환경에서는 단안 깊이(Monocular Depth)와 속도 추정의 불확실성이 증가할 수 있다.
+
+라이다 파이프라인(LiDAR Pipeline)은 3차원 포인트 클라우드(Point Cloud)를 독립적으로 처리하여 실제 거리 기반 기하 정보(Metric Geometry)를 복원한다. 포인트 기반(Point-Based), 복셀 기반(Voxel-Based), 필러 기반(Pillar-Based), 희소 합성곱 신경망(Sparse Convolutional Network)을 이용하여 객체를 검출하고 3차원 위치, 크기, 방향 및 신뢰도를 추정할 수 있다. 라이다는 정확한 거리와 공간 구조를 제공하여 장애물 기하 정보와 자유 공간(Free Space) 추론에 유용하지만, 거리가 증가할수록 포인트 밀도가 감소하고 특정 기상 조건이나 반사 표면에서 측정 성능이 저하될 수 있다.
+
+레이더는 거리(Range), 방사 속도(Radial Velocity), 각도(Angle), 반사 신호 특성을 측정함으로써 다른 형태의 정보를 제공한다. 특히 직접적인 도플러 속도(Doppler Velocity) 측정은 이동 객체를 구분하고 상대 운동(Relative Motion)을 추정하는 데 유용하다. 또한 레이더는 광학 센서가 어려움을 겪는 환경 조건에서도 동작할 수 있다. 그러나 레이더 검출 결과는 일반적으로 희소하며 다중 경로 반사(Multipath Reflection), 클러터(Clutter), 불확실한 각도 측정 또는 모호한 연관 관계를 포함할 수 있으므로 전용 전처리와 추적이 필요하다.
+
+후기 융합 아키텍처에서는 각 센싱 양식(Modality)이 융합 이전에 표준화된 객체 수준 출력(Object-Level Output)을 생성한다. 카메라 결과에는 객체 클래스, 영상 경계 상자, 신뢰도, 추정 깊이가 포함될 수 있고, 라이다는 3차원 경계 상자와 자세(Pose)를 제공할 수 있으며, 레이더는 표적 위치와 방사 속도를 제공할 수 있다. 이러한 서로 다른 출력을 호환 가능한 객체 표현(Object Representation)으로 변환하면 융합 모듈은 원시 센서 텐서(Raw Sensor Tensor)를 직접 결합하지 않고도 객체 간 대응 관계를 추론할 수 있다.
+
+검출 결과가 서로 다른 센서 좌표계(Sensor Frame)에서 생성되기 때문에 좌표 변환(Coordinate Transformation)은 필수적이다. 카메라 관측은 영상 좌표와 카메라 기하(Camera Geometry)에 연결되는 반면, 라이다와 레이더 검출 결과는 각각의 3차원 좌표계에서 자연스럽게 표현된다. 외부 보정(Extrinsic Calibration)을 이용하여 이러한 결과를 공통 로봇, 차량 또는 월드 좌표계(World Coordinate Frame)로 변환한다. 또한 3차원 가설을 영상 공간으로 투영하여 연관 관계를 판단하려면 정확한 카메라 내부 보정(Intrinsic Camera Calibration)이 필요하다.
+
+후기 융합 파이프라인에서는 시간 정렬(Temporal Alignment)도 매우 중요하다. 카메라, 라이다, 레이더는 서로 다른 주기로 동작하고 측정 획득 지연시간(Acquisition Delay)도 서로 다를 수 있다. 따라서 이동하는 로봇이나 동적 객체는 서로 가까운 타임스탬프에서도 다른 위치에 존재할 수 있다. 데이터 연관(Data Association)과 상태 추정(State Estimation)을 수행하기 전에 타임스탬프 관리, 버퍼링(Buffering), 보간(Interpolation), 자체 운동 보상(Ego-Motion Compensation), 트랙 예측(Track Prediction)을 통해 관측값을 공통 융합 시점(Fusion Time)에 정렬할 수 있다.
+
+데이터 연관은 독립적으로 생성된 관측값 가운데 어떤 것들이 동일한 실제 객체에 해당하는지를 결정한다. 기하학적 거리, 3차원 교집합 대비 합집합(3D Intersection-over-Union), 영상에 투영된 중첩 영역(Projected Image Overlap), 클래스 호환성(Class Compatibility), 속도 일관성(Velocity Consistency), 외형 임베딩(Appearance Embedding) 또는 이러한 척도의 조합을 이용하여 연관 비용(Association Cost)을 정의할 수 있다. 이후 할당 알고리즘(Assignment Algorithm)을 이용하여 센서 검출 결과 또는 기존 트랙 사이의 대응 관계를 결정하고 물리적 또는 의미적으로 일관되지 않은 조합을 제거한다.
+
+게이팅(Gating)은 계산 비용이 높은 매칭을 수행하기 전에 잘못된 연관 관계를 줄이는 역할을 한다. 카메라 검출과 라이다 객체는 투영된 3차원 경계 상자가 영상 관측과 충분히 중첩되는 경우에만 서로 호환되는 것으로 판단할 수 있다. 레이더 표적은 예측된 거리, 위치 또는 속도를 기준으로 게이팅할 수 있다. 추정된 공분산(Covariance)을 기반으로 하는 통계적 게이트(Statistical Gate)는 센서 불확실성을 고려하여 타당한 영역에서 크게 벗어난 측정값이 융합 객체 상태를 오염시키는 것을 방지할 수 있다.
+
+연관 과정이 완료되면 각 센서의 장점과 불확실성에 따라 객체 속성을 융합할 수 있다. 라이다는 실제 거리 기반 위치와 객체 크기에 큰 영향을 줄 수 있고, 레이더는 방사 속도 추정에 강하게 기여하며, 카메라는 가장 신뢰성 높은 의미 클래스(Semantic Class)를 제공할 수 있다. 가중 평균(Weighted Averaging), 베이지안 추정(Bayesian Estimation), 칼만 필터링(Kalman Filtering), 공분산 교차(Covariance Intersection), 신뢰도 규칙(Confidence Rule), 학습 기반 융합 모듈을 사용하여 불확실성의 명시적인 추정값을 유지하면서 이러한 속성을 결합할 수 있다.
+
+추적(Tracking)은 검출 계층 위에서 시간적 연속성(Temporal Continuity)을 제공한다. 융합 추적기(Fused Tracker)는 객체 식별 정보(Object Identity)를 유지하면서 연속된 프레임에 걸쳐 위치, 속도, 가속도, 방향 및 불확실성을 추정한다. 센서 검출 결과가 입력될 때마다 기존 트랙을 업데이트할 수 있으며, 일시적으로 관측되지 않는 동안에는 예측을 통해 트랙을 유지한다. 이러한 비동기 트랙 수준 아키텍처(Asynchronous Track-Level Architecture)는 개별 센서가 서로 다른 주기로 동작하거나 일시적으로 객체를 검출하지 못하는 상황에서 유용하다.
+
+후기 융합의 중요한 장점 중 하나는 모듈성(Modularity)이다. 카메라, 라이다, 레이더 인지 모듈은 호환 가능한 출력 인터페이스(Output Interface)를 유지하는 한 독립적으로 개발, 시험, 교체 또는 업그레이드할 수 있다. 새로운 카메라 검출기를 적용하더라도 반드시 라이다 신경망을 다시 학습할 필요는 없으며, 레이더 처리 모듈 역시 독립적으로 발전시킬 수 있다. 이러한 특성은 엔지니어링 통합을 단순화하고 서로 다른 로봇 또는 차량 제품군에서 이질적인 하드웨어 구성을 지원한다.
+
+후기 융합은 고장 격리(Fault Isolation)와 점진적 성능 저하(Graceful Degradation)도 지원한다. 어둠이나 오염으로 인해 카메라를 사용할 수 없더라도 라이다와 레이더 파이프라인은 계속 관측값을 생성할 수 있다. 라이다 성능이 저하되는 경우에도 레이더와 카메라 검출 결과를 이용하여 부분적인 환경 인식(Environmental Awareness)을 유지할 수 있다. 센서 상태 정보(Sensor-Health Information)를 이용하여 신뢰도를 변경하고, 신뢰할 수 없는 측정값을 비활성화하거나 연관 임계값을 조정함으로써 성능이 저하된 하나의 센싱 양식이 전체 융합 인지 결과를 손상시키는 것을 방지할 수 있다.
+
+후기 융합의 주요 한계는 교차 양식 상호작용(Cross-Modal Interaction)이 이루어지기 전에 일부 정보가 제거된다는 것이다. 영상이 객체 검출 결과로 축소되고 나면 밀집된 시각 특징(Dense Visual Feature)을 더 이상 활용하여 약한 라이다 관측을 개선할 수 없다. 마찬가지로 상세한 포인트 클라우드 기하 정보도 경계 상자로 변환된 이후에는 손실될 수 있다. 따라서 후기 융합은 특징 수준 융합(Feature-Level Fusion)이나 심층 융합(Deep Fusion) 아키텍처가 풍부한 중간 표현에서 직접 학습할 수 있는 일부 교차 센서 관계를 놓칠 수 있다.
+
+거짓 음성(False Negative) 역시 중요한 문제이다. 후기 융합은 융합 단계까지 전달된 정보만 결합할 수 있기 때문이다. 센서별 검출기가 객체 가설을 생성하지 못하면 이후의 융합 과정에서 해당 센싱 양식에서 이미 제거된 모든 정보를 복구할 수 없다. 다중 센서 트랙 관리(Multi-Sensor Track Management), 완화된 후보 생성(Permissive Candidate Generation), 센서별 신뢰도 보정(Confidence Calibration), 매칭되지 않은 검출 결과의 융합 등을 통해 이러한 문제를 줄일 수 있지만, 개별 검출기의 품질은 여전히 근본적인 의존 요소이다.
+
+따라서 양산 파이프라인(Production Pipeline)에서는 객체 상태, 좌표계, 타임스탬프, 공분산, 신뢰도, 클래스 확률(Class Probability), 센서 식별 정보, 유효성 정보(Validity Information)를 명확하게 기술하는 인터페이스를 설계해야 한다. 진단 로그(Diagnostic Logging)는 연관 판단과 각 센서의 기여도를 보존하여 고장 원인을 분석할 수 있도록 해야 한다. 또한 융합 결과가 내비게이션 또는 안전 관련 기능에 직접 사용되는 경우 결정론적 지연시간(Deterministic Latency), 제한된 큐(Bounded Queue), 오래된 측정값 처리(Stale-Measurement Handling), 보정 상태 모니터링, 대체 동작 모드(Fallback Mode)가 필요하다.
+
+자율 로봇(Autonomous Robot)과 피지컬 AI(Physical AI) 시스템에서 라이다-레이더-카메라 후기 융합은 다중 센서 강건성(Multimodal Robustness)과 엔지니어링 모듈성 사이에서 실용적인 균형을 제공한다. 이미 성숙한 센서별 인지 모듈이 존재하거나 독립적인 안전 및 진단 경로가 필요한 경우 특히 적합하다. 심층 융합과 비교하면 일부 정보의 풍부함을 희생하지만, 신중하게 설계된 후기 융합 파이프라인은 실시간 로봇 운용을 위한 해석 가능하고 고장 허용적인(Fault-Tolerant) 객체 인지 및 추적 기능을 제공할 수 있다.
+
+## 06.08. Temporal Fusion History Aggregation [w/Code]
+
+![](images/image8.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+시간 융합(Temporal Fusion)은 여러 시간 단계(Time Step)에 걸쳐 수집된 관측값을 통합함으로써 개별 센서 스냅샷(Sensor Snapshot)을 넘어 인지 범위를 확장한다. 매 프레임마다 환경을 독립적으로 추정하는 대신, 시스템은 이전 관측에서 유용한 정보를 보존하고 이를 현재 측정값과 결합한다. 이러한 이력 집계(History Aggregation)는 시간적 연속성(Temporal Continuity)을 제공하고 불완전한 센싱에 대한 강건성을 향상시키며, 인지 시스템이 운동(Motion), 지속성(Persistence), 변화하는 환경 상태를 추론할 수 있도록 한다.
+
+하나의 센서 프레임(Sensor Frame)은 물리 세계(Physical World)의 일부만을 관측한다. 객체가 일시적으로 가려질 수 있고, 라이다(LiDAR) 반환 신호가 희소할 수 있으며, 카메라 검출 결과가 프레임마다 변동하거나 레이더(Radar) 측정값에 잡음 또는 모호성(Ambiguity)이 포함될 수 있다. 시간에 걸쳐 증거를 누적하면 개별 프레임에서 약하거나 누락된 정보를 복원할 수 있다. 반복적인 관측은 지속적인 환경 구조와 일시적인 측정 아티팩트(Measurement Artifact)를 구분하는 데에도 도움이 된다.
+
+기본적인 시간 융합 파이프라인(Temporal Fusion Pipeline)은 타임스탬프(Timestamp)가 부여된 일련의 센서 관측값에서 시작한다. 각 프레임은 특징(Feature), 객체(Object), 포인트 클라우드(Point Cloud), 점유 표현(Occupancy Representation) 또는 기타 중간 상태로 인코딩된다. 이후 과거 정보를 집계하기 전에 현재 관측과 연결된 좌표계로 변환한다. 로봇과 주변 객체 모두 연속된 측정 사이에서 상당히 이동할 수 있기 때문에 이러한 정렬 단계(Alignment Step)는 필수적이다.
+
+자체 운동 보상(Ego-Motion Compensation)은 로봇 자체의 움직임으로 인해 발생하는 환경의 겉보기 운동(Apparent Motion)을 제거한다. 오도메트리(Odometry), 관성 측정 장치(IMU), 시각-관성 추정(Visual-Inertial Estimation), 위성항법시스템(GNSS) 또는 위치 추정(Localization) 결과를 이용하여 과거와 현재 로봇 자세 사이의 변환을 계산할 수 있다. 이후 이전 포인트 클라우드, 조감도 특징(BEV Feature), 객체 상태 또는 점유 셀(Occupancy Cell)을 현재 좌표계로 변환할 수 있다. 정확한 보상이 이루어지지 않으면 정지된 구조물이 시간 누적 이후 중복되거나 흐릿하게 나타날 수 있다.
+
+동적 객체(Dynamic Object)는 자체 운동 보상만으로 처리할 수 없기 때문에 추가적인 처리가 필요하다. 자체 운동 보상은 관측되는 세계가 정적이라고 가정하지만 차량, 보행자, 로봇 및 기타 이동 객체는 프레임 사이에서 독립적으로 위치를 변경한다. 추적(Tracking), 장면 흐름(Scene Flow), 광학 흐름(Optical Flow), 속도 추정(Velocity Estimation), 학습 기반 운동 모델(Learned Motion Model)을 이용하여 이러한 변화를 예측할 수 있다. 운동 인식 시간 정렬(Motion-Aware Temporal Alignment)은 과거 특징이 이미 지나간 위치에 잘못 누적되는 것을 방지하고 동적 장애물 주변의 일관성을 향상시킨다.
+
+이력 집계는 여러 표현 수준(Representation Level)에서 수행할 수 있다. 원시 라이다 스윕(Raw LiDAR Sweep)을 누적하여 포인트 밀도를 높일 수 있고, 객체 검출 결과를 추적을 통해 연결할 수 있으며, 중간 신경망 특징(Intermediate Neural Feature)을 시간에 따라 전파할 수도 있다. 조감도(Bird's-Eye View, BEV) 표현은 과거의 공간 특징을 공통 로봇 중심 평면으로 변환할 수 있기 때문에 특히 적합하다. 점유 그리드(Occupancy Grid)와 의미 지도(Semantic Map) 역시 더 긴 시간 범위에서 관측 증거를 유지할 수 있다.
+
+단순한 집계 방법에는 연결(Concatenation), 평균화(Averaging), 최대 풀링(Maximum Pooling), 지수 가중 업데이트(Exponentially Weighted Update) 등이 있다. 이러한 방법은 계산 효율성이 높으며 과거 관측값이 정확하게 정렬되어 있다면 상당한 성능 향상을 제공할 수 있다. 그러나 고정된 집계 규칙은 사전에 정의된 가정에 따라 시간 정보를 처리하기 때문에 객체 운동, 센서 신뢰도 또는 장면 동역학(Scene Dynamics)이 크게 변하는 상황에서는 한계가 있다. 학습 기반 시간 모델(Learned Temporal Model)은 어떤 과거 정보를 보존하거나 억제해야 하는지를 학습할 수 있다.
+
+장단기 메모리(Long Short-Term Memory, LSTM)와 게이트 순환 유닛(Gated Recurrent Unit, GRU) 같은 순환 신경망(Recurrent Neural Network)은 압축된 시간 상태(Temporal State)를 유지하는 하나의 방법을 제공한다. 각 시간 단계에서 현재 센서 특징은 이전 관측을 요약하는 은닉 표현(Hidden Representation)과 결합된다. 이를 통해 전체 이력을 명시적으로 저장하지 않고도 프레임 사이에서 정보를 유지할 수 있다. 순환 처리는 객체 추적, 운동 추정, 점유 예측, 일시적 가림 상황의 인지를 지원할 수 있지만 매우 긴 시퀀스(Sequence)를 효과적으로 모델링하는 데에는 여전히 어려움이 있을 수 있다.
+
+시간 합성곱(Temporal Convolution)은 시간 차원에 걸친 커널(Kernel)을 사용하여 일정 길이의 과거 특징 시퀀스를 처리하는 또 다른 접근법이다. 병렬 계산을 지원하며 속도 변화 또는 반복적인 관측과 같은 국부적인 시간 패턴(Temporal Pattern)을 포착할 수 있다. 팽창 시간 합성곱(Dilated Temporal Convolution)은 계산량을 비례적으로 증가시키지 않으면서 수용 영역(Receptive Field)을 확장할 수 있다. 고정된 시간 윈도우(Temporal Window)를 사용하므로 메모리 요구량을 예측하기 쉬워 실시간 임베디드 및 엣지 인지 시스템(Edge Perception System)에 유리할 수 있다.
+
+트랜스포머 기반 시간 융합(Transformer-Based Temporal Fusion)은 어텐션(Attention)을 이용하여 서로 다른 시점의 관측 사이의 관계를 형성한다. 현재 특징이나 객체 쿼리(Object Query)는 모든 과거 프레임을 동일하게 처리하는 대신 관련성이 높은 과거 정보를 선택적으로 참조할 수 있다. 시간 어텐션(Temporal Attention)은 최근 관측이 일반적으로 중요하다는 것을 학습하면서도 객체가 가려졌을 때 더 오래된 관측 정보를 다시 검색할 수 있다. 또한 공간 어텐션(Spatial Attention)과 시간 어텐션을 결합하여 관련 정보가 언제, 어디에서 관측되었는지를 공동으로 추론할 수 있다.
+
+메모리 기반 아키텍처(Memory-Based Architecture)는 지속적인 특징 뱅크(Feature Bank), 객체 메모리(Object Memory), 지도 메모리(Map Memory), 잠재 장면 상태(Latent Scene State)를 유지함으로써 이러한 원리를 확장한다. 새로운 관측값은 메모리를 업데이트하고, 인지 모듈은 과거 문맥을 복원하기 위해 메모리를 질의(Query)한다. 메모리는 짧은 프레임 시퀀스보다 훨씬 긴 시간 동안 객체 식별 정보, 의미 정보, 점유 증거 또는 기하 구조를 유지할 수 있다. 이러한 아키텍처는 시간 인지와 피지컬 AI(Physical AI) 시스템에서 사용하는 지속적인 월드 표현(Persistent World Representation)을 연결하기 시작한다.
+
+시간 융합은 동일한 실제 객체에 속하는 관측값을 시간에 따라 명시적으로 연관시키는 다중 객체 추적(Multi-Object Tracking)과 밀접한 관련이 있다. 트랙(Track)은 객체 식별 정보와 함께 위치, 속도, 방향 및 불확실성 추정값을 유지한다. 과거 검출 결과는 객체 분류와 기하 정보를 안정화할 수 있으며, 예측 상태(Predicted State)는 짧은 측정 누락 구간을 연결한다. 따라서 트랙 수준 이력(Track-Level History)은 내비게이션과 행동 예측(Behavior Prediction)을 위한 압축된 객체 중심 표현(Object-Centric Representation)으로 활용될 수 있다.
+
+점유 인지(Occupancy Perception) 역시 이력 집계의 큰 이점을 얻는다. 하나의 프레임에는 장애물 뒤의 미관측 영역(Unknown Region)이 존재하거나 희소하게 관측된 공간에 충분한 증거가 없을 수 있다. 적절하게 정렬된 측정값을 누적하면 관측 범위를 확대하고 점유 및 자유 공간 추정을 안정화할 수 있다. 동적 점유 모델(Dynamic Occupancy Model)은 셀 또는 학습된 공간 요소 내부의 운동까지 추정하여 정적인 구조와 이동 에이전트(Moving Agent)를 구분하고 가까운 미래의 점유 상태를 예측할 수 있다.
+
+불확실성(Uncertainty)은 과거 정보가 얼마나 오랫동안 영향을 유지해야 하는지를 결정해야 한다. 위치 추정 불확실성이 증가하거나 객체가 이동하고 환경 조건이 변화하면 오래된 측정값의 신뢰성이 감소할 수 있다. 시간 감쇠(Temporal Decay)는 오래된 관측의 기여도를 점진적으로 줄일 수 있으며, 신뢰도 인식 집계(Confidence-Aware Aggregation)는 신뢰할 수 있는 증거를 더 오래 유지할 수 있다. 학습 기반 불확실성 모델, 공분산 전파(Covariance Propagation), 가시성 추론(Visibility Reasoning), 센서 상태 정보(Sensor-Health Information)를 이용하면 과거 정보가 현재 표현에 기여하는 정도를 더욱 정교하게 조절할 수 있다.
+
+다중 센서 시간 융합(Multi-Sensor Temporal Fusion)은 각각의 센싱 양식이 서로 다른 샘플링 주기, 지연시간, 시야각(Field of View), 잡음 특성을 가질 수 있기 때문에 추가적인 복잡성을 발생시킨다. 카메라는 비디오 주기로 동작하고, 라이다는 상대적으로 낮은 스캔 주기로 동작하며, 레이더는 또 다른 업데이트 주기를 가지고, IMU는 수백 헤르츠의 높은 주기로 동작할 수 있다. 따라서 여러 센서의 과거 정보를 일관되게 집계하려면 타임스탬프 기반 버퍼(Timestamped Buffer), 보간, 비동기 업데이트(Asynchronous Update), 운동 보상이 필요하다.
+
+시간 윈도우는 중요한 엔지니어링 절충 요소(Engineering Trade-Off)를 만든다. 짧은 이력은 메모리 사용량과 지연시간을 줄일 수 있지만 느린 운동이나 장시간 가림에 필요한 문맥이 부족할 수 있다. 긴 이력은 더욱 풍부한 정보를 제공하지만 계산량을 증가시키고 오래된 증거를 잘못 누적할 위험을 높인다. 적응형 메모리 선택(Adaptive Memory Selection), 키 프레임 전략(Key-Frame Strategy), 압축된 잠재 상태(Compressed Latent State), 어텐션 기반 검색(Attention-Based Retrieval)을 이용하면 매 업데이트마다 모든 과거 관측을 처리하지 않고도 유용한 장기 문맥을 유지할 수 있다.
+
+실시간 로봇 배포(Real-Time Robotic Deployment)에서 시간 융합은 결정론적인 계산 및 메모리 한계 내에서 동작해야 한다. 과거 특징 버퍼, BEV 텐서, 포인트 클라우드, 객체 트랙은 제한 없이 유지할 경우 상당한 메모리를 소비할 수 있다. 특징 압축(Feature Compression), 고정 지연 윈도우(Fixed-Lag Window), 희소 표현(Sparse Representation), 혼합 정밀도 추론(Mixed-Precision Inference), 선택적 캐싱(Selective Caching), GPU 가속을 이용하면 자율 내비게이션과 안전 기능에 필요한 업데이트 주기를 유지하면서 이력 집계를 실용적으로 구현할 수 있다.
+
+궁극적으로 시간 융합은 인지를 순간적인 인식(Instantaneous Recognition)에서 연속적인 장면 이해(Continuous Scene Understanding)로 변화시킨다. 정렬된 과거 증거를 현재 관측과 결합함으로써 로봇은 지속적인 객체를 유지하고, 운동을 추론하며, 일시적인 센서 정보 누락을 극복하고, 점유 상태를 안정화하며, 변화하는 환경을 이해할 수 있다. 다중 센서 융합, 추적, 의미 지도 작성(Semantic Mapping), 월드 모델(World Model)과 통합될 경우 이력 집계는 자율 로봇과 피지컬 AI 시스템의 시공간 지능(Spatial-Temporal Intelligence)을 위한 중요한 기반을 제공한다.
+
+## 06.09. Sensor Fusion Failure Detection and Isolation [w/Code]
+
+![](images/image9.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+센서 융합 고장 검출 및 격리(Sensor Fusion Failure Detection and Isolation)는 센서 정보가 계속 신뢰할 수 있는지를 판단하고, 어떤 센싱 채널(Sensing Channel) 또는 처리 경로(Processing Path)의 성능이 저하되었는지를 식별하며, 손상된 데이터가 융합 상태 추정값(Fused State Estimate)을 불안정하게 만드는 것을 방지하는 과정이다. 자율 로봇에서는 잘못된 측정값이 충분한 일관성 검사 없이 수용될 경우 융합 알고리즘이 높은 신뢰도를 가진 잘못된 결과를 생성할 수 있기 때문에 이러한 기능이 필수적이다.
+
+센서 고장(Sensor Failure)은 완전한 신호 손실, 간헐적인 데이터 누락(Intermittent Dropout), 점진적인 드리프트(Drift), 잡음 증가, 바이어스(Bias), 포화(Saturation), 값 고정(Frozen Value), 타이밍 오류(Timing Error), 보정 변화(Calibration Change), 물리적으로 타당하지 않은 측정값 등 다양한 형태로 나타날 수 있다. 연결이 끊어진 라이다(LiDAR)처럼 명확한 고장도 있지만 일부 고장은 매우 미묘하다. 서서히 변화하는 IMU 바이어스나 약간 잘못된 카메라 외부 보정(Camera Extrinsic Calibration)은 겉보기에는 정상적인 측정값을 계속 생성하면서 위치 추정과 인지 정확도를 점진적으로 저하시킬 수 있다.
+
+고장 검출(Failure Detection)은 센서 신호와 그 통계적 특성을 지속적으로 모니터링하는 것에서 시작한다. 기본적인 검사에는 측정 범위, 업데이트 주기(Update Frequency), 타임스탬프 진행(Timestamp Progression), 패킷 무결성(Packet Integrity), 신호 품질, 포화, 데이터 누락 검출 등이 포함된다. 이러한 저수준 진단(Low-Level Diagnostics)을 통해 측정값이 융합 추정기(Fusion Estimator)에 입력되기 전에 통신 고장과 하드웨어 이상을 식별할 수 있다. 그러나 기본적인 유효성 검사를 통과한 측정값이라도 로봇의 물리적 상태와 일치하지 않을 수 있다.
+
+모델 기반 일관성 검사(Model-Based Consistency Checking)는 실제 센서 측정값을 현재 융합 상태에서 예측된 값과 비교한다. 칼만 필터(Kalman Filter) 기반 시스템에서는 측정값과 예측값의 차이가 혁신값 또는 잔차(Innovation or Residual)를 형성한다. 정상적인 동작 상태에서는 이러한 잔차가 예상되는 프로세스 및 측정 불확실성(Process and Measurement Uncertainty)과 통계적으로 일치해야 한다. 따라서 지속적이거나 비정상적으로 큰 잔차는 센서 성능 저하, 잘못된 모델링 또는 비정상적인 운용 상태를 나타낼 수 있다.
+
+혁신 공분산(Innovation Covariance)은 잔차의 크기를 해석하기 위한 통계적 척도를 제공한다. 측정 불확실성이 본질적으로 큰 경우 수치적으로 큰 잔차가 반드시 비정상적인 것은 아니며, 반대로 매우 정확한 센서에서는 작은 잔차도 중요한 의미를 가질 수 있다. 정규화 혁신 척도(Normalized Innovation Measure)와 마할라노비스 거리(Mahalanobis Distance)를 이용하면 예상 불확실성을 기준으로 잔차를 평가할 수 있다. 통계적 게이팅(Statistical Gating)을 적용하면 적절한 신뢰도 임계값(Confidence Threshold)을 초과하는 불일치 관측값을 거부할 수 있다.
+
+이종 센서(Heterogeneous Sensor) 사이의 중복성(Redundancy)은 고장 검출을 위한 또 다른 강력한 메커니즘을 제공한다. 위성항법시스템(GNSS) 위치는 관성 및 오도메트리(Odometry) 기반 운동과 비교할 수 있고, 카메라 기반 운동은 라이다 오도메트리(LiDAR Odometry)와 비교할 수 있으며, 레이더 속도(Radar Velocity)는 추적 객체 또는 자체 운동(Ego-Motion) 추정값과 비교할 수 있다. 독립적인 센싱 원리 사이의 일치는 신뢰도를 높이는 반면 지속적인 불일치는 하나 이상의 채널이 신뢰할 수 없음을 나타낼 수 있다. 서로 다른 센서는 환경 조건에 따라 서로 다른 방식으로 고장나는 경우가 많기 때문에 물리적 다양성(Physical Diversity)은 중요한 가치를 가진다.
+
+고장 격리(Failure Isolation)는 단순한 검출을 넘어 불일치의 원인을 식별하는 과정이다. 여러 센서가 서로 다른 결과를 제공할 경우 시스템은 어떤 센서, 보정 매개변수(Calibration Parameter), 통신 경로 또는 추정기 구성 요소가 문제의 원인인지를 판단해야 한다. 쌍별 일관성 검사(Pairwise Consistency Test), 다중 모델 추정(Multiple-Model Estimation), 독립 관측기 뱅크(Independent Observer Bank), 잔차 시그니처(Residual Signature), 센서 투표(Sensor Voting)를 이용하여 고장 채널을 구분할 수 있다. 여러 센서가 동시에 고장나거나 공통적인 오류 원인(Common Source of Error)을 공유하면 고장 격리는 더욱 어려워진다.
+
+고장 시그니처(Fault Signature)는 서로 다른 고장 모드(Failure Mode)가 생성하는 특징적인 패턴을 나타낸다. 일정한 잔차 오프셋은 바이어스를 의미할 수 있고, 시간에 따라 증가하는 오차는 드리프트를 나타낼 수 있으며, 반복적인 불연속은 통신 불안정을 나타낼 수 있다. 또한 기계적 충격 이후 갑자기 발생한 불일치는 외부 보정 위치의 변화(Extrinsic Calibration Displacement)를 의미할 수 있다. 통계적 증거와 알려진 센서 동작 특성을 결합하면 단일 임계값 기반 검출기보다 고장을 더욱 정확하게 분류할 수 있다.
+
+시간적 추론(Temporal Reasoning)이 중요한 이유는 하나의 비정상 측정값이 반드시 실제 고장을 의미하지는 않기 때문이다. 카메라는 눈부심으로 인해 일시적으로 특징을 잃을 수 있고, GNSS는 짧은 다중 경로(Multipath) 교란을 경험할 수 있으며, 라이다는 일시적인 강수 아티팩트(Precipitation Artifact)를 수신할 수 있다. 따라서 검출 로직은 지속성(Persistence), 반복성(Recurrence), 변화율(Rate of Change), 과거 센서 품질을 고려할 수 있다. 디바운싱(Debouncing)과 시간 기반 신뢰도(Temporal Confidence)를 이용하면 불필요한 고장 선언을 방지하면서 지속적인 이상에는 신속하게 대응할 수 있다.
+
+가능하다면 환경에 의한 성능 저하(Environmental Degradation)를 영구적인 하드웨어 고장과 구분해야 한다. 어둠, 안개, 비, 먼지, 반사 표면, 전자기 간섭(Electromagnetic Interference), 진동, GNSS 음영 환경(GNSS-Denied Environment)은 장치를 실제로 손상시키지 않으면서 센서 품질을 일시적으로 저하시킬 수 있다. 상황 인식 진단(Context-Aware Diagnostics)은 영상 밝기, 라이다 반환 신호 통계, 레이더 클러터(Radar Clutter), 위성 품질 지표 또는 진동 수준을 해석하여 측정 품질 저하가 현재 운용 환경과 일치하는지를 판단할 수 있다.
+
+고장나거나 성능이 저하된 센서를 식별한 이후에는 융합 아키텍처(Fusion Architecture)가 해당 센서의 영향력을 제어해야 한다. 심각하게 손상된 측정값은 완전히 거부할 수 있지만, 중간 수준으로 성능이 저하된 정보는 측정 공분산(Measurement Covariance)을 증가시킨 상태로 계속 사용할 수 있다. 적응형 공분산 팽창(Adaptive Covariance Inflation)은 센서를 즉시 비활성화하지 않으면서 불확실한 관측값에 부여되는 가중치를 낮춘다. 센서 품질이 단순히 정상 또는 고장 상태로 변화하는 것이 아니라 연속적으로 변화하는 경우 이러한 점진적인 대응이 더 적합한 경우가 많다.
+
+센서 제외(Sensor Exclusion)를 수행할 때는 관측 가능성(Observability)도 고려해야 한다. 특정 센서를 제거하면 일부 상태 변수를 추정하는 데 필요한 정보가 사라질 수 있다. 예를 들어 관성 센싱(Inertial Sensing)은 GNSS가 손실된 동안 단기적인 운동 추정을 유지할 수 있지만 외부 보정 정보가 없으면 드리프트가 누적된다. 따라서 고장 관리 시스템(Failure-Management System)은 남아 있는 센서 구성에서 어떤 상태가 계속 관측 가능한지를 이해하고, 잔존 센서 집합이 정상적인 자율주행 성능을 지원하지 못하는 경우 운용 한계를 조정해야 한다.
+
+점진적 성능 저하(Graceful Degradation)는 로봇이 완전 자율 상태에서 즉시 완전 정지 상태로 전환하는 대신 감소된 기능 수준으로 계속 동작할 수 있도록 한다. 하나의 카메라가 손실되면 시야각(Field of View)이 감소할 수 있고, GNSS 성능이 저하되면 국부 위치 추정(Local Localization)에 의존해야 하며, 인지 불확실성이 증가하면 속도를 낮추거나 안전 여유(Safety Margin)를 확대해야 할 수 있다. 융합 시스템은 자신의 신뢰도와 사용 가능한 센싱 능력을 경로 계획(Planning), 제어(Control), 안전 계층(Safety Layer)에 전달하여 로봇의 행동이 적절하게 조정되도록 해야 한다.
+
+중복 추정 경로(Redundant Estimation Path)는 고장 허용성(Fault Tolerance)을 향상시킬 수 있다. 주 융합 추정기(Primary Fused Estimator)와 함께 서로 다른 센서 조합을 사용하는 독립적인 위치 추정 또는 인지 채널을 운용할 수 있다. 이들의 출력을 지속적으로 비교하면 추가적인 진단 근거를 얻을 수 있다. 다양한 알고리즘과 센싱 원리를 사용하면 공통 모드 의존성(Common-Mode Dependence)을 줄일 수 있지만, 중복성은 계산 비용을 증가시키며 여러 추정기가 동일한 숨겨진 고장 원인을 공유하지 않도록 신중하게 설계해야 한다.
+
+딥러닝 기반 융합(Deep-Learning-Based Fusion)은 분포 변화(Distribution Shift), 비정상적인 날씨, 센서 손상 또는 학습 과정에서 경험하지 못한 센싱 양식 누락 조합에서 신경망이 예측하기 어려운 방식으로 동작할 수 있기 때문에 추가적인 고장 모드를 발생시킨다. 신뢰도 점수만으로 실제 불확실성을 정확하게 표현하지 못할 수도 있다. 학습 과정의 센싱 양식 드롭아웃(Modality Dropout), 불확실성 인식 모델(Uncertainty-Aware Model), 분포 외 데이터 검출(Out-of-Distribution Detection), 교차 양식 일관성 검사(Cross-Modal Consistency Check), 독립적인 물리적 타당성 검사(Physical Plausibility Test)를 이용하면 학습 기반 융합 아키텍처의 신뢰성을 향상시킬 수 있다.
+
+보정(Calibration)과 동기화(Synchronization)는 영구적으로 정확하다고 가정하기보다 상태 건전성 변수(Health Variable)로 모니터링해야 한다. 기계적 진동, 열팽창(Thermal Expansion), 센서 교체, 클록 드리프트(Clock Drift), 통신 지연시간 변화는 공간적 또는 시간적 정렬을 점진적으로 변화시킬 수 있다. 온라인 일관성 지표(Online Consistency Metric)를 이용하면 카메라, 라이다, 레이더, IMU 측정 사이에서 발생하는 체계적인 투영 또는 타이밍 오류를 검출할 수 있다. 일부 시스템에서는 보정 매개변수를 온라인으로 추정할 수 있으며, 안전 중요 시스템(Safety-Critical System)은 허용 한계를 초과하면 재보정(Recalibration)을 요청할 수 있다.
+
+고장 검출 임계값(Failure Detection Threshold)은 민감도(Sensitivity)와 오경보(False Alarm) 사이에서 균형을 이루어야 한다. 임계값이 지나치게 느슨하면 손상된 측정값이 추정기에 입력되고, 지나치게 엄격하면 급격한 운동이나 비정상적인 환경 조건에서도 유효한 관측값을 거부할 수 있다. 운용 모드(Operating Mode), 예측 불확실성, 센서 품질, 환경 문맥(Environmental Context)을 기반으로 하는 적응형 임계값(Adaptive Threshold)은 고정 임계값보다 강건한 동작을 제공할 수 있지만, 대표적인 다양한 시나리오에 걸친 신중한 검증이 필요하다.
+
+양산 구현(Production Implementation)에서는 정상(Healthy), 성능 저하(Degraded), 의심(Suspected), 고장(Failed), 복구 중(Recovering)과 같은 명시적인 센서 상태(Sensor-Health State)를 유지해야 한다. 상태 전이는 하드웨어 진단, 통계적 잔차, 환경 지표, 시간적 지속성을 종합하여 결정할 수 있다. 측정값이 다시 입력되었다고 해서 센서를 즉시 신뢰하면 불안정한 데이터가 다시 융합될 수 있으므로 복구 과정 역시 제어해야 한다. 완전한 융합 권한(Fusion Authority)을 복원하기 전에 재초기화(Reinitialization), 일관성 검증, 공분산 조정 또는 일정한 검증 기간(Probation Period)이 필요할 수 있다.
+
+궁극적으로 센서 융합 고장 검출 및 격리는 다중 센서의 중복성을 실제 운용 복원력(Operational Resilience)으로 전환한다. 목표는 단순히 고장난 하드웨어를 탐지하는 것이 아니라 어떤 정보를 신뢰할 수 있는지를 지속적으로 판단하고, 성능 저하를 정량화하며, 불일치의 원인을 격리하고, 이에 따라 추정기와 로봇의 행동을 적응시키는 것이다. 불확실성 추정(Uncertainty Estimation), 상태 건전성 모니터링(Health Monitoring), 대체 동작 모드(Fallback Mode), 경로 계획, 안전 감독(Safety Supervision)과 통합된 고장 검출 및 격리(Failure Detection and Isolation, FDI)는 실제 환경의 센서 고장과 환경적 교란에서도 강건한 인지와 상태 추정을 가능하게 한다.
+
+## 06.10. Multi Sensor Fusion Calibration Extrinsic Online [w/Code]
+
+![](images/image10.png){width="7.268055555555556in" height="7.268055555555556in"}
+
+다중 센서 융합 보정(Multi-Sensor Fusion Calibration)은 카메라(Camera), 라이다(LiDAR), 레이더(Radar), 관성 측정 장치(IMU), 위성항법시스템(GNSS) 및 기타 센서의 측정값을 공통 공간 표현(Common Spatial Representation)에서 결합하기 위해 필요한 기하학적 및 시간적 관계를 설정한다. 개별 센서의 정확도가 매우 높더라도 센서 사이의 상대 자세(Relative Pose)가 부정확하면 융합 결과가 서로 일치하지 않을 수 있다. 따라서 보정(Calibration)은 인지(Perception), 위치 추정(Localization), 지도 작성(Mapping), 추적(Tracking), 자율 내비게이션(Autonomous Navigation)의 기반 계층을 형성한다.
+
+외부 보정(Extrinsic Calibration)은 센서 좌표계(Sensor Coordinate Frame) 사이의 강체 변환(Rigid-Body Transformation)을 결정한다. 이러한 변환은 일반적으로 3차원 병진(Translation)과 회전(Rotation)으로 구성되며, 동차 변환 행렬(Homogeneous Transformation Matrix) 또는 이에 상응하는 자세 표현(Pose Representation)으로 나타낼 수 있다. 예를 들어 카메라-라이다 보정(Camera-to-LiDAR Calibration)은 라이다 좌표계에서 측정된 포인트를 영상 평면(Image Plane)에 투영하기 전에 카메라 좌표계로 어떻게 변환할지를 정의한다.
+
+로봇 플랫폼은 일반적으로 base_link, 차량(Vehicle), 또는 바디 프레임(Body Frame)과 같은 안정적인 기준 좌표계(Reference Frame)를 정의한다. 각 센서는 외부 변환(Extrinsic Transformation)을 통해 이 기준 좌표계와 연결되어 변환 트리(Transformation Tree)를 형성한다. 이후 카메라, 라이다, 레이더, IMU 관측값을 공통 좌표계로 변환할 수 있다. 작은 구현 오류도 큰 융합 오차를 발생시킬 수 있으므로 일관된 좌표계 규칙(Frame Convention), 축 정의(Axis Definition), 변환 방향(Transformation Direction), 단위(Unit)를 유지하는 것이 필수적이다.
+
+카메라 보정(Camera Calibration)은 내부 보정(Intrinsic Calibration)과 외부 보정으로 구성된다. 내부 매개변수(Intrinsic Parameter)는 초점 거리(Focal Length), 주점(Principal Point), 왜곡(Distortion), 3차원 광선과 영상 픽셀 사이의 관계를 정의한다. 외부 보정은 다른 센서 또는 로봇 좌표계에 대한 카메라 자세를 정의한다. 따라서 라이다 포인트, 레이더 표적 또는 3차원 객체 가설(Object Hypothesis)을 영상에 정확하게 투영하려면 두 매개변수 집합 모두 유효한 상태로 유지되어야 한다.
+
+라이다-카메라 보정(LiDAR-Camera Calibration)은 일반적으로 두 센싱 양식에서 모두 관측할 수 있는 기하학적 특징(Geometric Feature)을 사용한다. 보정 타깃(Calibration Target), 평면, 모서리(Edge), 코너(Corner) 또는 자연적으로 존재하는 환경 구조를 이용하여 대응 제약조건(Correspondence Constraint)을 생성할 수 있다. 최적화(Optimization)는 투영된 라이다 기하 정보가 대응되는 영상 구조와 정렬될 때까지 회전과 병진을 조정한다. 결과의 품질은 측정 다양성, 타깃 기하 구조, 센서 시야 중첩(Field Overlap), 추출된 대응 관계의 정확도에 크게 영향을 받는다.
+
+레이더 보정(Radar Calibration)은 레이더 측정값이 희소하고 카메라 영상이나 밀집된 라이다 기하 정보와 직접적으로 유사하지 않기 때문에 서로 다른 문제를 가진다. 반사 타깃(Reflective Target), 코너 리플렉터(Corner Reflector), 이동 객체 또는 환경 랜드마크(Environmental Landmark)를 이용하여 센서 간 대응 관계를 설정할 수 있다. 특히 레이더-차량 방향(Radar-to-Vehicle Orientation)은 작은 각도 오차도 장거리에서 큰 횡방향 위치 오차를 발생시키고 다중 객체 추적(Multi-Object Tracking)의 속도 해석을 왜곡할 수 있기 때문에 중요하다.
+
+IMU 외부 보정(IMU Extrinsic Calibration)은 관성 센서(Inertial Sensor)의 방향과 위치를 로봇 바디 및 다른 센싱 장치에 대해 정의한다. 방향 정렬 오차(Orientation Misalignment)는 측정된 가속도와 각속도(Angular Velocity)를 각 축에 잘못 분배할 수 있다. IMU와 다른 센서 사이의 레버 암(Lever Arm) 역시 회전 운동 중에는 중요하다. 서로 다른 위치에 장착된 센서는 서로 다른 병진 운동(Translational Motion)을 경험하기 때문이다. 따라서 고동역학 플랫폼(High-Dynamic Platform)에서는 회전 및 병진 외부 보정을 모두 신중하게 처리해야 한다.
+
+시간 보정(Temporal Calibration)은 공간 보정을 보완한다. 센서는 서로 다른 클록(Clock), 획득 메커니즘(Acquisition Mechanism), 노출 시간(Exposure Time), 스캔 패턴(Scan Pattern), 통신 경로를 사용하는 경우가 많다. 공간 보정이 완벽하더라도 측정값에 잘못된 타임스탬프가 연결되면 융합 성능이 저하될 수 있다. 따라서 카메라 노출 시점, 라이다 스캔 시점, 레이더 업데이트 시점, IMU 샘플링 시점을 융합 추정기에서 사용하는 공통 시스템 시간(Common System Time)에 정확하게 연결해야 한다.
+
+시간 오프셋(Time Offset)은 서로 다른 센서가 독립적으로 관측한 운동을 비교하여 추정할 수 있다. IMU에서 측정된 회전 운동을 카메라 또는 라이다의 자세 변화와 상관 분석할 수 있으며, 차량 운동을 이용하여 레이더, 오도메트리(Odometry), GNSS 관측값을 정렬할 수도 있다. 보정 과정에서는 이러한 신호 사이의 일관성을 최대화하는 시간 변위(Temporal Displacement)를 탐색한다. 충분한 정밀도를 제공할 수 있다면 하드웨어 트리거링(Hardware Triggering)과 동기화된 클록(Synchronized Clock)을 사용하는 것이 여전히 바람직하다.
+
+오프라인 외부 보정(Offline Extrinsic Calibration)은 일반적으로 제조, 시스템 통합, 초기 시운전(Commissioning), 유지보수 과정에서 수행된다. 로봇을 제어된 환경에 배치하고 센서가 적절한 보정 구조를 관측하거나 충분한 정보를 제공하는 운동을 수행하는 동안 데이터를 수집한다. 이후 배치 최적화기(Batch Optimizer)가 다수의 측정값으로부터 변환 매개변수를 추정한다. 오프라인 방식은 전용 타깃, 긴 데이터셋, 높은 계산 비용의 최적화를 사용할 수 있기 때문에 높은 정확도를 달성할 수 있다.
+
+그러나 외부 보정 매개변수를 로봇의 전체 운용 수명 동안 항상 일정한 값으로 가정해서는 안 된다. 기계적 진동, 충격, 열 변형(Thermal Deformation), 장착부 이완(Mounting Relaxation), 유지보수 또는 센서 교체로 인해 센서 사이의 상대 자세가 변화할 수 있다. 작은 변화도 장거리 투영이나 정밀 위치 추정에서는 중요한 영향을 줄 수 있다. 따라서 보정 매개변수는 영구적인 상수로 저장하기보다 그 유효성을 지속적으로 모니터링할 수 있는 값으로 관리해야 한다.
+
+온라인 보정(Online Calibration)은 로봇이 운용되는 동안 보정 매개변수를 추정하거나 정제(Refinement)한다. 외부 회전, 병진 또는 시간 오프셋을 필터(Filter), 팩터 그래프(Factor Graph), 비선형 최적화(Nonlinear Optimization) 문제의 추가 변수로 포함할 수 있다. 이후 센서 관측값은 로봇 상태와 보정 매개변수를 동시에 제약한다. 충분한 정보를 제공하는 운동과 환경 구조가 존재한다면 이러한 접근법을 통해 점진적인 변화를 보상하고 반복적인 수동 보정의 필요성을 줄일 수 있다.
+
+관측 가능성(Observability)은 온라인 보정에서 핵심적인 문제이다. 로봇 운동과 센서 관측값이 충분히 독립적인 정보를 제공하지 않으면 보정 매개변수를 신뢰성 있게 추정할 수 없다. 일정한 속도의 직선 운동만으로는 일부 회전 또는 병진 매개변수에 대한 정보가 부족할 수 있지만, 다양한 회전과 가속 운동은 이러한 매개변수를 관측 가능하게 만들 수 있다. 따라서 온라인 시스템은 매개변수 불확실성을 모니터링하고 충분히 제약되지 않은 보정 추정값을 정확한 값으로 취급하지 않아야 한다.
+
+팩터 그래프 최적화(Factor Graph Optimization)는 상태와 보정 매개변수를 공동으로 추정하기 위한 자연스러운 프레임워크를 제공한다. 로봇 자세, 속도, IMU 바이어스(IMU Bias), 랜드마크(Landmark), 외부 변환, 시간 오프셋을 센서 팩터(Sensor Factor)로 연결된 변수로 표현할 수 있다. 관측값이 누적됨에 따라 최적화를 통해 궤적(Trajectory)과 보정값을 함께 정제할 수 있다. 사전 제약조건(Prior)은 매개변수를 알려진 장착값 근처로 제한하여 일시적으로 관측 정보가 부족할 때 비현실적인 해가 생성되는 것을 방지할 수 있다.
+
+보정 품질은 교차 양식 잔차(Cross-Modal Residual)를 이용하여 모니터링할 수 있다. 영상으로 투영된 라이다 모서리는 대응하는 영상 구조와 정렬되어야 하고, 레이더 표적은 추적 객체와 일관성을 유지해야 하며, 카메라 또는 라이다가 추정한 운동은 좌표 변환 이후 관성 측정값과 일치해야 한다. 지속적으로 구조화된 잔차(Structured Residual)가 발생하면 보정 드리프트(Calibration Drift)를 의미할 수 있다. 통계적 임계값과 시간 필터링(Temporal Filtering)을 이용하면 체계적인 정렬 오차를 일시적인 측정 잡음이나 데이터 연관 오류와 구분할 수 있다.
+
+온라인 재보정(Online Recalibration)은 일반적인 센서 고장과 신중하게 구분해야 한다. 큰 잔차는 잘못된 외부 보정 매개변수에서 발생할 수 있지만 센서 성능 저하, 잘못된 데이터 연관(Data Association), 동기화 오류 또는 비정상적인 환경 조건에서도 발생할 수 있다. 보정값을 지나치게 공격적으로 업데이트하면 추정기가 보정과 무관한 고장을 기하학적 매개변수에 흡수할 수 있다. 강건 손실 함수(Robust Loss Function), 제한된 매개변수 변화(Bounded Parameter Change), 상태 건전성 모니터링(Health Monitoring), 다중 센서 일관성 검사를 이용하여 이러한 현상을 방지할 수 있다.
+
+보정 불확실성(Calibration Uncertainty)은 추정된 변환을 완벽하게 알려진 값으로 취급하기보다 융합 시스템에서 고려해야 한다. 불확실한 외부 보정은 변환된 측정값과 투영된 특징의 불확실성을 증가시킨다. 공분산 전파(Covariance Propagation) 또는 확률적 보정 표현(Probabilistic Calibration Representation)을 이용하여 이러한 영향을 후속 상태 추정 단계에 전달할 수 있다. 보정 신뢰도가 허용 가능한 수준보다 낮아지면 해당 교차 양식 제약조건의 영향력을 줄이거나 전용 재보정 절차를 요청할 수 있다.
+
+양산 로봇(Production Robot)의 보정 관리에는 매개변수 버전 관리(Parameter Versioning), 검증 기록(Validation Record), 설치 식별 정보(Installation Identity), 필요한 경우 온도 또는 기계적 환경 정보, 시작 시 자동 일관성 검사(Automated Consistency Check)가 포함되어야 한다. 카메라, 라이다, 레이더 또는 IMU를 교체하면 관련 변환값을 다시 검증해야 한다. 추적 가능한 보정 데이터(Traceable Calibration Data)를 유지하면 오래된 매개변수가 인지 스택(Perception Stack)에 조용히 적용되는 것을 방지하고 현장 고장의 원인 분석도 단순화할 수 있다.
+
+궁극적으로 다중 센서 보정은 각각 독립적으로 정확한 센서들이 동일한 물리 세계를 서로 일관되게 표현할 수 있는지를 결정한다. 신뢰성 높은 융합을 위해서는 정확한 공간 변환(Spatial Transformation), 정밀한 시간 정렬, 관측 가능한 상태 추정, 보정 상태 모니터링(Calibration-Health Monitoring), 제어된 온라인 정제가 필요하다. 고품질 오프라인 초기화(Offline Initialization)에 온라인 검증과 선택적인 재보정을 결합하면 자율 로봇과 피지컬 AI(Physical AI) 시스템의 전체 운용 수명 동안 강건한 다중 센서 인지를 유지할 수 있는 실용적인 아키텍처를 구축할 수 있다.
